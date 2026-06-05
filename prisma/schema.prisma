@@ -1,0 +1,225 @@
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Profile {
+  id            String          @id // Supabase auth UID
+  username      String
+  type          String          @default("seller")
+  storeName     String
+  fullName      String?
+  phone         String?
+  avatarUrl     String?
+  bio           String?
+  lat           Float
+  lng           Float
+  city          String
+  upazilla      String
+  sellerCode    String          @unique
+  createdAt     DateTime        @default(now())
+  products      SellerProduct[]
+  orders        Order[]
+
+  @@map("profiles")
+}
+
+model GlobalProduct {
+  id             String          @id @default(cuid())
+  name           String
+  brand          String?
+  category       String
+  subCategory    String?
+  description    String?
+  imageUrl       String?
+  tags           String[]
+  createdAt      DateTime        @default(now())
+  sellerProducts SellerProduct[]
+
+  @@map("global_products")
+}
+
+model SellerProduct {
+  id              String         @id @default(cuid())
+  sellerId        String
+  seller          Profile        @relation(fields: [sellerId], references: [id])
+  globalProductId String?
+  globalProduct   GlobalProduct? @relation(fields: [globalProductId], references: [id])
+  customName      String?
+  stock           Int
+  price           Float
+  status          String         @default("pending")
+  rejectionReason String?
+  qrCode          String?
+  productCode     String         @unique
+  createdAt       DateTime       @default(now())
+  cartItems       CartItem[]
+  orderItems      OrderItem[]
+  resellerStock   ResellerStockItem[]
+
+  @@map("seller_products")
+}
+
+model BuyerProfile {
+  id          String      @id
+  email       String      @unique
+  fullName    String?
+  phone       String?
+  avatarUrl   String?
+  address     String?
+  lat         Float?
+  lng         Float?
+  city        String?
+  upazilla    String?
+  district    String?
+  createdAt   DateTime    @default(now())
+  orders      Order[]
+  cartItems   CartItem[]
+  behaviours  BuyerBehaviour[]
+
+  @@map("buyer_profiles")
+}
+
+model CartItem {
+  id              String        @id @default(cuid())
+  buyerId         String
+  buyer           BuyerProfile  @relation(fields: [buyerId], references: [id])
+  sellerProductId String
+  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id])
+  quantity        Int           @default(1)
+  addedAt         DateTime      @default(now())
+
+  @@map("cart_items")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  buyerId         String
+  buyer           BuyerProfile  @relation(fields: [buyerId], references: [id])
+  sellerId        String
+  seller          Profile       @relation(fields: [sellerId], references: [id])
+  items           OrderItem[]
+  status          String        @default("pending")
+  totalAmount     Float
+  deliveryAddress String
+  city            String
+  upazilla        String
+  district        String
+  buyerNote       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  notifications   OrderNotification[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String        @id @default(cuid())
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id])
+  sellerProductId String
+  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id])
+  quantity        Int
+  priceAtPurchase Float
+
+  @@map("order_items")
+}
+
+model OrderNotification {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id])
+  forRole   String
+  userId    String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("order_notifications")
+}
+
+model BuyerBehaviour {
+  id          String       @id @default(cuid())
+  buyerId     String
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [id])
+  type        String
+  payload     Json
+  createdAt   DateTime     @default(now())
+
+  @@map("buyer_behaviours")
+}
+
+model LocalReseller {
+  id           String                  @id  // Supabase auth UID
+  email        String                  @unique
+  username     String                  // store/reseller name
+  fullName     String?
+  phone        String?
+  avatarUrl    String?
+  bio          String?
+  lat          Float?
+  lng          Float?
+  city         String
+  upazilla     String
+  resellerCode String                  @unique  // 6-char alphanumeric
+  createdAt          DateTime                @default(now())
+  stock              ResellerStockItem[]
+  receivedTransfers  StockTransfer[]
+}
+
+model ResellerStockItem {
+  id              String         @id @default(cuid())
+  resellerId      String
+  reseller        LocalReseller  @relation(fields: [resellerId], references: [id])
+  sellerProductId String?
+  sellerProduct   SellerProduct? @relation(fields: [sellerProductId], references: [id])
+  customName      String?
+  quantity        Int            @default(0)
+  assignedAt      DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model UpazillaReseller {
+  id            String                    @id
+  // Supabase auth UID
+  email         String                    @unique
+  city          String
+  upazilla      String
+  createdAt     DateTime                  @default(now())
+  inventory     UpazillaStockItem[]
+  sentTransfers StockTransfer[]           @relation("SentTransfers")
+}
+
+model UpazillaStockItem {
+  id                 String           @id @default(cuid())
+  upazillaResellerId String
+  upazillaReseller   UpazillaReseller @relation(fields: [upazillaResellerId], references: [id])
+  productName        String
+  brand              String?
+  category           String?
+  quantity           Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  transfers          StockTransfer[]
+}
+
+model StockTransfer {
+  id                 String            @id @default(cuid())
+  upazillaResellerId String
+  upazillaReseller   UpazillaReseller  @relation("SentTransfers", fields: [upazillaResellerId], references: [id])
+  localResellerId    String
+  localReseller      LocalReseller     @relation(fields: [localResellerId], references: [id])
+  stockItemId        String
+  stockItem          UpazillaStockItem @relation(fields: [stockItemId], references: [id])
+  quantity           Int
+  status             String            @default("pending")
+  // pending | accepted | rejected
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}

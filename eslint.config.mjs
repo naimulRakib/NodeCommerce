@@ -12,7 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Add ignores for generated code that ESLint/TS rules don't realistically apply to.
+    // This prevents hundreds of lint errors from generated Prisma client files.
+    "src/generated/**",
   ]),
 ]);
+
 
 export default eslintConfig;

@@ -1,0 +1,12 @@
+
+> nodecom@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.113.204.129:3000
+- Environments: .env.local, .env
+✓ Ready in 171ms
+
+ GET /api/local-reseller/profile 200 in 1266ms (next.js: 283ms, application-code: 983ms)
+[?25h
