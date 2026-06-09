@@ -1,8 +1,9 @@
 // https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client-js"
+  output     = "../src/generated/prisma"
+  engineType = "library"
 }
 
 datasource db {
@@ -10,9 +11,9 @@ datasource db {
 }
 
 model Profile {
-  id            String          @id // Supabase auth UID
+  id            String                  @id // Supabase auth UID
   username      String
-  type          String          @default("seller")
+  type          String                  @default("seller")
   storeName     String
   fullName      String?
   phone         String?
@@ -22,10 +23,13 @@ model Profile {
   lng           Float
   city          String
   upazilla      String
-  sellerCode    String          @unique
-  createdAt     DateTime        @default(now())
+  sellerCode    String                  @unique
+  createdAt     DateTime                @default(now())
   products      SellerProduct[]
   orders        Order[]
+  stockOrders   StockOrderNegotiation[]
+  shipmentPlans ShipmentPlan[]
+  negotiations  SellerACONegotiation[]
 
   @@map("profiles")
 }
@@ -46,42 +50,48 @@ model GlobalProduct {
 }
 
 model SellerProduct {
-  id              String         @id @default(cuid())
+  id              String                  @id @default(cuid())
   sellerId        String
-  seller          Profile        @relation(fields: [sellerId], references: [id])
+  seller          Profile                 @relation(fields: [sellerId], references: [id])
   globalProductId String?
-  globalProduct   GlobalProduct? @relation(fields: [globalProductId], references: [id])
+  globalProduct   GlobalProduct?          @relation(fields: [globalProductId], references: [id])
+  forecasts       StockForecast[]
   customName      String?
   stock           Int
   price           Float
-  status          String         @default("pending")
+  status          String                  @default("pending")
   rejectionReason String?
   qrCode          String?
-  productCode     String         @unique
-  createdAt       DateTime       @default(now())
+  productCode     String                  @unique
+  createdAt       DateTime                @default(now())
   cartItems       CartItem[]
   orderItems      OrderItem[]
   resellerStock   ResellerStockItem[]
+  stockOrders     StockOrderNegotiation[]
+  acoJobs         ACORoutingJob[]
+  negotiations    SellerACONegotiation[]
 
+  @@index([sellerId])
+  @@index([globalProductId])
   @@map("seller_products")
 }
 
 model BuyerProfile {
-  id          String      @id
-  email       String      @unique
-  fullName    String?
-  phone       String?
-  avatarUrl   String?
-  address     String?
-  lat         Float?
-  lng         Float?
-  city        String?
-  upazilla    String?
-  district    String?
-  createdAt   DateTime    @default(now())
-  orders      Order[]
-  cartItems   CartItem[]
-  behaviours  BuyerBehaviour[]
+  id         String           @id
+  email      String           @unique
+  fullName   String?
+  phone      String?
+  avatarUrl  String?
+  address    String?
+  lat        Float?
+  lng        Float?
+  city       String?
+  upazilla   String?
+  district   String?
+  createdAt  DateTime         @default(now())
+  orders     Order[]
+  cartItems  CartItem[]
+  behaviours BuyerBehaviour[]
 
   @@map("buyer_profiles")
 }
@@ -91,7 +101,7 @@ model CartItem {
   buyerId         String
   buyer           BuyerProfile  @relation(fields: [buyerId], references: [id])
   sellerProductId String
-  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id])
+  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id], onDelete: Cascade)
   quantity        Int           @default(1)
   addedAt         DateTime      @default(now())
 
@@ -99,23 +109,25 @@ model CartItem {
 }
 
 model Order {
-  id              String        @id @default(cuid())
+  id              String              @id @default(cuid())
   buyerId         String
-  buyer           BuyerProfile  @relation(fields: [buyerId], references: [id])
+  buyer           BuyerProfile        @relation(fields: [buyerId], references: [id])
   sellerId        String
-  seller          Profile       @relation(fields: [sellerId], references: [id])
+  seller          Profile             @relation(fields: [sellerId], references: [id])
   items           OrderItem[]
-  status          String        @default("pending")
+  status          String              @default("pending")
   totalAmount     Float
   deliveryAddress String
   city            String
   upazilla        String
   district        String
   buyerNote       String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
   notifications   OrderNotification[]
 
+  @@index([buyerId])
+  @@index([sellerId])
   @@map("orders")
 }
 
@@ -124,10 +136,11 @@ model OrderItem {
   orderId         String
   order           Order         @relation(fields: [orderId], references: [id])
   sellerProductId String
-  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id])
+  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id], onDelete: Restrict)
   quantity        Int
   priceAtPurchase Float
 
+  @@index([orderId])
   @@map("order_items")
 }
 
@@ -145,61 +158,80 @@ model OrderNotification {
 }
 
 model BuyerBehaviour {
-  id          String       @id @default(cuid())
-  buyerId     String
-  buyer       BuyerProfile @relation(fields: [buyerId], references: [id])
-  type        String
-  payload     Json
-  createdAt   DateTime     @default(now())
+  id        String       @id @default(cuid())
+  buyerId   String
+  buyer     BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  type      String
+  payload   Json
+  createdAt DateTime     @default(now())
 
   @@map("buyer_behaviours")
 }
 
 model LocalReseller {
-  id           String                  @id  // Supabase auth UID
-  email        String                  @unique
-  username     String                  // store/reseller name
-  fullName     String?
-  phone        String?
-  avatarUrl    String?
-  bio          String?
-  lat          Float?
-  lng          Float?
-  city         String
-  upazilla     String
-  resellerCode String                  @unique  // 6-char alphanumeric
-  createdAt          DateTime                @default(now())
-  stock              ResellerStockItem[]
-  receivedTransfers  StockTransfer[]
+  id                String              @id // Supabase auth UID
+  email             String              @unique
+  username          String // store/reseller name
+  fullName          String?
+  phone             String?
+  avatarUrl         String?
+  bio               String?
+  lat               Float?
+  lng               Float?
+  city              String
+  upazilla          String
+  resellerCode      String              @unique // 6-char alphanumeric
+  createdAt         DateTime            @default(now())
+  stock             ResellerStockItem[]
+  receivedTransfers StockTransfer[]
+  demands           LocalDemand[]
 }
 
 model ResellerStockItem {
-  id              String         @id @default(cuid())
-  resellerId      String
-  reseller        LocalReseller  @relation(fields: [resellerId], references: [id])
-  sellerProductId String?
-  sellerProduct   SellerProduct? @relation(fields: [sellerProductId], references: [id])
-  customName      String?
-  quantity        Int            @default(0)
-  assignedAt      DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id               String         @id @default(cuid())
+  resellerId       String
+  reseller         LocalReseller  @relation(fields: [resellerId], references: [id], onDelete: Cascade)
+  sellerProductId  String?
+  sellerProduct    SellerProduct? @relation(fields: [sellerProductId], references: [id], onDelete: Cascade)
+  customName       String?
+  quantity         Int            @default(0)
+  assignedAt       DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  isReserved       Boolean        @default(false)
+  reservedQuantity Int            @default(0)
+  // quantity reserved for upazilla demand
+  surplusQuantity  Int            @default(0)
+  // quantity that went up to upazilla/district hub
+
+  // A reseller can hold only one stock row per (reseller, sellerProduct)
+  // and only one per (reseller, customName). Partial uniques because
+  // sellerProductId and customName are both nullable, and the two paths
+  // are mutually exclusive in practice.
+  @@unique([resellerId, sellerProductId], name: "reseller_sellerProduct_unique")
+  @@unique([resellerId, customName], name: "reseller_customName_unique")
 }
 
 model UpazillaReseller {
-  id            String                    @id
+  id                   String                   @id
   // Supabase auth UID
-  email         String                    @unique
-  city          String
-  upazilla      String
-  createdAt     DateTime                  @default(now())
-  inventory     UpazillaStockItem[]
-  sentTransfers StockTransfer[]           @relation("SentTransfers")
+  email                String                   @unique
+  city                 String
+  upazilla             String
+  createdAt            DateTime                 @default(now())
+  inventory            UpazillaStockItem[]
+  sentTransfers        StockTransfer[]          @relation("SentTransfers")
+  receivedFromDistrict DistrictTransfer[]
+  demands              UpazillaDemand[]
+  stockOrders          StockOrderNegotiation[]
+  availableStock       UpazillaAvailableStock[]
+
+  @@unique([city, upazilla])
 }
 
 model UpazillaStockItem {
   id                 String           @id @default(cuid())
   upazillaResellerId String
-  upazillaReseller   UpazillaReseller @relation(fields: [upazillaResellerId], references: [id])
+  upazillaReseller   UpazillaReseller @relation(fields: [upazillaResellerId], references: [id], onDelete: Cascade)
   productName        String
   brand              String?
   category           String?
@@ -207,19 +239,756 @@ model UpazillaStockItem {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   transfers          StockTransfer[]
+
+  @@index([upazillaResellerId])
 }
 
 model StockTransfer {
-  id                 String            @id @default(cuid())
-  upazillaResellerId String
-  upazillaReseller   UpazillaReseller  @relation("SentTransfers", fields: [upazillaResellerId], references: [id])
-  localResellerId    String
-  localReseller      LocalReseller     @relation(fields: [localResellerId], references: [id])
-  stockItemId        String
-  stockItem          UpazillaStockItem @relation(fields: [stockItemId], references: [id])
+  id                 String             @id @default(cuid())
+  upazillaResellerId String?
+  upazillaReseller   UpazillaReseller?  @relation("SentTransfers", fields: [upazillaResellerId], references: [id], onDelete: SetNull)
+  localResellerId    String?
+  localReseller      LocalReseller?     @relation(fields: [localResellerId], references: [id], onDelete: SetNull)
+  stockItemId        String?
+  stockItem          UpazillaStockItem? @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
   quantity           Int
-  status             String            @default("pending")
+  status             String             @default("pending")
   // pending | accepted | rejected
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([upazillaResellerId])
+  @@index([localResellerId])
+  @@index([stockItemId])
+}
+
+model DistrictReseller {
+  id                        String                     @id
+  // Supabase auth UID
+  email                     String                     @unique
+  district                  String                     @unique
+  // one reseller per district
+  createdAt                 DateTime                   @default(now())
+  inventory                 DistrictStockItem[]
+  sentTransfers             DistrictTransfer[]         @relation("DistrictSentTransfers")
+  demands                   DistrictDemand[]
+  sentNationalTransfers     NationalTransfer[]         @relation("SentNationalTransfers")
+  receivedNationalTransfers NationalTransfer[]         @relation("ReceivedNationalTransfers")
+  acoSourceOpportunities    InterDistrictOpportunity[] @relation("ACOSource")
+  acoTargetOpportunities    InterDistrictOpportunity[] @relation("ACOTarget")
+}
+
+model DistrictStockItem {
+  id                   String             @id @default(cuid())
+  districtResellerId   String
+  districtReseller     DistrictReseller   @relation(fields: [districtResellerId], references: [id], onDelete: Cascade)
+  productName          String
+  brand                String?
+  category             String?
+  quantity             Int                @default(0)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  transfers            DistrictTransfer[]
+  remainingDemand      Int                @default(0)
+  // starts at total demand, decreases as
+  // upazillas reserve their portion
+  fulfilledByUpazillas Int                @default(0)
+  // total reserved across all upazillas
+  // in this district for this product
+
+  nationalTransfers NationalTransfer[]
+
+  @@index([districtResellerId])
+}
+
+model DistrictTransfer {
+  id                 String             @id @default(cuid())
+  districtResellerId String?
+  districtReseller   DistrictReseller?  @relation("DistrictSentTransfers", fields: [districtResellerId], references: [id], onDelete: SetNull)
+  upazillaResellerId String?
+  upazillaReseller   UpazillaReseller?  @relation(fields: [upazillaResellerId], references: [id], onDelete: SetNull)
+  stockItemId        String?
+  stockItem          DistrictStockItem? @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  quantity           Int
+  productName        String? // denormalized for history
+  status             String             @default("pending")
+  // pending | accepted | rejected
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([districtResellerId])
+  @@index([upazillaResellerId])
+  @@index([stockItemId])
+}
+
+model NationalTransfer {
+  id                     String            @id @default(cuid())
+  fromDistrictResellerId String
+  fromDistrictReseller   DistrictReseller  @relation("SentNationalTransfers", fields: [fromDistrictResellerId], references: [id], onDelete: Cascade)
+  toDistrictResellerId   String
+  toDistrictReseller     DistrictReseller  @relation("ReceivedNationalTransfers", fields: [toDistrictResellerId], references: [id], onDelete: Cascade)
+  stockItemId            String
+  stockItem              DistrictStockItem @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  productName            String
+  quantity               Int
+  status                 String            @default("pending")
+  // pending | accepted | rejected
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  @@index([fromDistrictResellerId])
+  @@index([toDistrictResellerId])
+  @@index([stockItemId])
+}
+
+model CityReseller {
+  id        String   @id
+  // Supabase auth UID
+  email     String   @unique
+  city      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model UpazillaDemand {
+  id                 String           @id @default(cuid())
+  upazillaResellerId String
+  upazillaReseller   UpazillaReseller @relation(fields: [upazillaResellerId], references: [id])
+  productName        String
+  demandQuantity     Int
+  // how much this upazilla needs total
+  fulfilledQuantity  Int              @default(0)
+  // how much has been reserved from seller stock
+  status             String           @default("pending")
+  // pending | partially_fulfilled | fulfilled
+  notes              String?
+  enteredBy          String
+  // userId who entered this demand
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  // one demand entry per product per upazilla
+  // updating replaces old demand
+
+  @@unique([upazillaResellerId, productName])
+}
+
+model DistrictDemand {
+  id                 String           @id @default(cuid())
+  districtResellerId String
+  districtReseller   DistrictReseller @relation(fields: [districtResellerId], references: [id])
+  productName        String
+  totalDemand        Int
+  // sum of all upazilla demands in this district
+  remainingDemand    Int
+  // totalDemand - sum of fulfilled upazilla demands
+  status             String           @default("pending")
+  // pending | partially_fulfilled | fulfilled
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([districtResellerId, productName])
+}
+
+model StockOrderNegotiation {
+  id                 String                   @id @default(cuid())
+  upazillaResellerId String
+  upazillaReseller   UpazillaReseller         @relation(fields: [upazillaResellerId], references: [id], onDelete: Cascade)
+  sellerId           String
+  seller             Profile                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerProductId    String
+  sellerProduct      SellerProduct            @relation(fields: [sellerProductId], references: [id], onDelete: Cascade)
+  productCode        String
+  productName        String
+  requestedQuantity  Int
+  originalPrice      Float
+  negotiatedPrice    Float
+  finalPrice         Float?
+  status             String                   @default("pending")
+  sellerNote         String?
+  upazillaNote       String?
+  counterPrice       Float?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  availableStocks    UpazillaAvailableStock[]
+
+  @@index([upazillaResellerId])
+  @@index([sellerId])
+  @@index([sellerProductId])
+}
+
+model UpazillaAvailableStock {
+  id                  String                 @id @default(cuid())
+  upazillaResellerId  String
+  upazillaReseller    UpazillaReseller       @relation(fields: [upazillaResellerId], references: [id], onDelete: Cascade)
+  sourceOrderId       String?
+  sourceOrder         StockOrderNegotiation? @relation(fields: [sourceOrderId], references: [id], onDelete: SetNull)
+  productName         String
+  brand               String?
+  category            String?
+  productCode         String
+  quantity            Int                    @default(0)
+  originalQuantity    Int
+  demandFulfilledQty  Int                    @default(0)
+  availableQty        Int                    @default(0)
+  pricePerUnit        Float
+  isVisibleToDistrict Boolean                @default(true)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@index([upazillaResellerId])
+}
+
+model LocalDemand {
+  id                String        @id @default(cuid())
+  localResellerId   String
+  localReseller     LocalReseller @relation(fields: [localResellerId], references: [id], onDelete: Cascade)
+  productCode       String
+  productName       String
+  demandQuantity    Int
+  fulfilledQuantity Int           @default(0)
+  status            String        @default("pending") // pending | partially_fulfilled | fulfilled
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // One pending/active demand per (reseller, product). Enforces the
+  // "no duplicate demand" rule at the DB level so a triple-click cannot
+  // create three rows.
+  @@unique([localResellerId, productCode])
+  @@map("local_demands")
+}
+
+model DemandPheromone {
+  id            String   @id @default(cuid())
+  entityType    String
+  // "upazilla" | "district"
+  entityId      String
+  // upazillaResellerId or districtResellerId
+  entityName    String
+  // upazilla name or district name
+  productName   String
+  score         Float    @default(1.0)
+  // accumulates when demand unfulfilled
+  // evaporates daily at EVAPORATION_RATE
+  demandDeficit Int      @default(0)
+  // current unfulfilled demand quantity
+  waitingDays   Int      @default(0)
+  // days since demand was entered
+  lastUpdated   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([entityType, entityId, productName])
+  @@index([entityType, productName])
+}
+
+model RoutePheromone {
+  id           String   @id @default(cuid())
+  fromEntity   String
+  // upazilla or district name
+  toEntity     String
+  productName  String
+  score        Float    @default(1.0)
+  successCount Int      @default(0)
+  totalRouted  Int      @default(0)
+  lastUsed     DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([fromEntity, toEntity, productName])
+}
+
+model ACORoutingJob {
+  id                         String                     @id @default(cuid())
+  triggeredBy                String
+  triggerType                String
+  // "manual" | "automatic" | "forecast_confirmed"
+  sourceUpazilla             String
+  sourceSellerId             String
+  productScope               String[]
+  // array of productNames being routed
+  // (multiple products per job)
+  totalForecastedStock       Json
+  // { productName: quantity } map
+  phase1Summary              Json                       @default("{}")
+  phase2Summary              Json                       @default("{}")
+  phase3Summary              Json                       @default("{}")
+  phase4Summary              Json                       @default("{}")
+  phase5Summary              Json                       @default("{}")
+  status                     String                     @default("planning")
+  // planning | plan_ready | dispatched
+  // | partially_delivered | completed | failed
+  conservationCheck          Json?
+  // verification result per product
+  startedAt                  DateTime                   @default(now())
+  completedAt                DateTime?
+  errorMessage               String?
+  shipmentPlans              ShipmentPlan[]
+  // one plan per destination truck
+  sellerProduct              SellerProduct?             @relation(fields: [sellerProductId], references: [id])
+  sellerProductId            String?
+  acoallocations             ACOAllocation[]
+  interDistrictOpportunities InterDistrictOpportunity[]
+
+  @@index([status])
+  @@index([sourceUpazilla])
+}
+
+model ACOAllocation {
+  id               String        @id @default(cuid())
+  jobId            String
+  job              ACORoutingJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  phase            Int
+  // 1 | 2 | 3
+  fromType         String
+  // "seller" | "district_hub"
+  fromId           String
+  fromName         String
+  toType           String
+  // "upazilla" | "district_hub" | "district"
+  toId             String
+  toName           String
+  productName      String
+  quantity         Int
+  acoScore         Float
+  distanceKm       Float
+  demandAtTime     Int
+  // demand when allocation was made
+  pheromoneScore   Float
+  allocationReason String
+  // "local_demand" | "intra_district_aco" |
+  // "inter_district_aco" | "surplus_reserve"
+  status           String        @default("pending")
+  // pending | executed | approved | rejected
+  executedAt       DateTime?
+  createdAt        DateTime      @default(now())
+
+  @@index([jobId])
+  @@index([phase])
+}
+
+model InterDistrictOpportunity {
+  id               String           @id @default(cuid())
+  jobId            String
+  job              ACORoutingJob    @relation(fields: [jobId], references: [id])
+  sourceDistrictId String
+  sourceDist       DistrictReseller @relation("ACOSource", fields: [sourceDistrictId], references: [id])
+  targetDistrictId String
+  targetDist       DistrictReseller @relation("ACOTarget", fields: [targetDistrictId], references: [id])
+  lineItems        Json
+  // [{ productName, quantity, acoScore }]
+  // multiple products per inter-district truck
+  totalQuantity    Int
+  overallAcoScore  Float
+  distanceKm       Float
+  sourceApproved   Boolean          @default(false)
+  targetApproved   Boolean          @default(false)
+  sourceApprovedAt DateTime?
+  targetApprovedAt DateTime?
+  status           String           @default("pending_approval")
+  // pending_approval | both_approved
+  // | source_rejected | target_rejected
+  // | executed | expired
+  expiresAt        DateTime
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([status])
+}
+
+model ACOTriggerLog {
+  id          String   @id @default(cuid())
+  triggeredBy String
+  triggerType String
+  productName String?
+  jobId       String?
+  result      String
+  // "success" | "no_demand" | "no_overflow" |
+  // "error"
+  summary     Json
+  // { p1: n, p2: n, p3: n, total: n }
+  createdAt   DateTime @default(now())
+}
+
+model StockForecast {
+  id                  String         @id @default(cuid())
+  sellerProductId     String
+  sellerProduct       SellerProduct  @relation(fields: [sellerProductId], references: [id])
+  predictedQuantity   Int
+  // seller's predicted available stock
+  // entered before physical stock exists
+  historicalBasis     Int            @default(0)
+  // quantity from historical sales data
+  manualAdjustment    Int            @default(0)
+  // manual override added on top
+  confidence          Float          @default(0.8)
+  // 0.0 to 1.0
+  forecastPeriodStart DateTime
+  forecastPeriodEnd   DateTime
+  status              String         @default("draft")
+  // draft | confirmed | routing_planned
+  // | dispatched | completed
+  enteredBy           String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  routingPlans        ShipmentPlan[]
+}
+
+model ShipmentPlan {
+  id              String             @id @default(cuid())
+  forecastId      String?
+  forecast        StockForecast?     @relation(fields: [forecastId], references: [id])
+  sourceUpazilla  String
+  sourceSellerId  String
+  sourceSeller    Profile            @relation(fields: [sourceSellerId], references: [id])
+  destinationType String
+  // "upazilla" | "district_hub"
+  destinationId   String
+  // upazillaResellerId or districtResellerId
+  destinationName String
+  distanceKm      Float
+  phase           Int
+  // 1 | 2 | 3 | 4 | 5
+  status          String             @default("planned")
+  // planned | approved | dispatched
+  // | delivered | failed | cancelled
+  approvedBy      String?
+  approvedAt      DateTime?
+  dispatchedAt    DateTime?
+  deliveredAt     DateTime?
+  failedAt        DateTime?
+  failureReason   String?
+  lineItems       ShipmentLineItem[]
+  truckId         String?
+  // physical truck identifier if known
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  jobId           String?
+  job             ACORoutingJob?     @relation(fields: [jobId], references: [id])
+
+  @@index([status])
+  @@index([sourceUpazilla])
+  @@index([destinationId])
+}
+
+model ShipmentLineItem {
+  id              String       @id @default(cuid())
+  shipmentPlanId  String
+  shipment        ShipmentPlan @relation(fields: [shipmentPlanId], references: [id], onDelete: Cascade)
+  productName     String
+  productCode     String?
+  plannedQuantity Int
+  // quantity in the ACO plan
+  actualQuantity  Int?
+  // confirmed quantity on delivery
+  // null until delivered
+  acoScore        Float
+  demandAtTime    Int
+  // demand when plan was made
+  allocationPhase Int
+  // which phase this product was allocated in
+  status          String       @default("planned")
+  // planned | delivered | short_delivered
+  // | lost_in_transit
+  createdAt       DateTime     @default(now())
+}
+
+// ============================================================
+// MULTI-PRODUCT GLOBAL ACO (PARALLEL SYSTEM)
+// ============================================================
+// Truck metaphor: each ACOShipment carries multiple products
+// bundled together. The global system coexists with the single-
+// product ACORoutingJob. Demand prerequisite + Own District First
+// are non-negotiable routing rules.
+// ============================================================
+
+// A global multi-product ACO run. Distinct from ACORoutingJob
+// (which is single-product-per-job). Triggered when a seller /
+// upazilla / district signals surplus for many products at once.
+model ACOGlobalJob {
+  id                String    @id @default(cuid())
+  triggeredBy       String
+  triggerType       String    @default("manual")
+  // "manual" | "automatic" | "scheduled"
+  sourceDistrict    String?
+  // originating district (own district first)
+  productScope      String[]
+  // productNames being routed in this run
+  totalSupply       Json
+  // { productName: totalAvailableQty } map
+  totalDemand       Json
+  // { productName: totalPendingDemandQty } map
+  // products with zero demand are dropped from scope
+  status            String    @default("planning")
+  // planning | phase1_ready | phase2_ready
+  // | phase3_ready | phase4_dispatched
+  // | completed | completed_pending_approval
+  // | failed | cancelled
+  phase1Summary     Json      @default("{}")
+  // { [upazillaResellerId]: { productName: qty } }
+  phase2Summary     Json      @default("{}")
+  // { [districtResellerId]: { productName: qty } }
+  phase3Summary     Json      @default("{}")
+  // { [shipmentId]: summary } inter-district shipment plans
+  phase4Summary     Json      @default("{}")
+  // { [shipmentId]: { [upazillaResellerId]: { productName: qty } } }
+  conservationCheck Json?
+  // { balanced: bool, perProduct: { productName: { expected, actual } } }
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  negotiationDeadline DateTime?
+  errorMessage      String?
+
+  shipments ACOShipment[]
+  trucks    Truck[]
+  sellerNegotiations SellerACONegotiation[]
+
+  @@index([status])
+  @@index([sourceDistrict])
+  @@index([triggeredBy])
+}
+
+// A physical "truck" carrying bundled products from one node
+// to another. Each shipment is a destination — multiple products
+// can be carried in the same truck. Line items in ACOShipmentItem.
+model ACOShipment {
+  id               String       @id @default(cuid())
+  jobId            String
+  job              ACOGlobalJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  phase            Int
+  // 1 | 2 | 3 | 4
+  fromType         String
+  // "seller" | "district_hub" | "district"
+  fromId           String
+  fromName         String
+  toType           String
+  // "upazilla" | "district_hub" | "upazilla_reseller"
+  toId             String
+  toName           String
+  totalQuantity    Int
+  // sum of all line items
+  overallAcoScore  Float
+  // average of line item scores weighted by qty
+  distanceKm       Float
+  // distance from source to destination
+  // Approval: phase 3 (inter-district) requires both source +
+  // target district head approval. phase 1, 2, 4 are auto-executed.
+  sourceApproved   Boolean      @default(false)
+  targetApproved   Boolean      @default(false)
+  sourceApprovedAt DateTime?
+  targetApprovedAt DateTime?
+  status           String       @default("pending_approval")
+  // pending_approval | source_approved | both_approved
+  // | source_rejected | target_rejected | dispatched
+  // | delivered | failed | expired | cancelled
+  expiresAt        DateTime?
+  // for inter-district: 48h approval window
+  dispatchedAt     DateTime?
+  deliveredAt      DateTime?
+  failureReason    String?
+  notes            String?
+  negotiationId    String?      @unique
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  lineItems ACOShipmentItem[]
+
+  @@index([jobId])
+  @@index([status])
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+  @@index([phase])
+}
+
+// One product on one truck. The bundled line item.
+model ACOShipmentItem {
+  id               String      @id @default(cuid())
+  shipmentId       String
+  shipment         ACOShipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  productName      String
+  productCode      String?
+  sellerProductId  String?
+  // provenance: link back to original SellerProduct
+  allocatedQty     Int
+  acoScore         Float
+  demandAtTime     Int
+  // the deficit at the time the plan was made
+  pheromoneScore   Float
+  allocationReason String
+  // "local_demand" | "intra_district_aco"
+  // | "inter_district_aco" | "surplus_reserve"
+  // | "dest_upazilla_routing"
+  status           String      @default("planned")
+  // planned | delivered | short_delivered
+  // | lost_in_transit | cancelled
+  createdAt        DateTime    @default(now())
+
+  @@index([shipmentId])
+  @@index([productName])
+  @@index([sellerProductId])
+}
+
+// Point-in-time snapshot of all pending demand for a product
+// across all upazillas and districts. Used by the global engine
+// to plan multi-product shipments with full visibility of demand
+// graph. Created at the start of each ACOGlobalJob.
+model ProductDemandSnapshot {
+  id               String   @id @default(cuid())
+  jobId            String
+  productName      String
+  scope            String
+  // "upazilla" | "district"
+  entityId         String
+  // upazillaResellerId or districtResellerId
+  entityName       String
+  district         String
+  pendingDemand    Int
+  // demand at snapshot time
+  reservedDemand   Int      @default(0)
+  // demand already covered by pending inbound transfers
+  effectiveDeficit Int
+  // pendingDemand - reservedDemand
+  waitingDays      Int      @default(0)
+  pheromoneScore   Float    @default(1.0)
+  createdAt        DateTime @default(now())
+
+  @@index([jobId])
+  @@index([productName])
+  @@index([scope, entityId])
+}
+
+// Point-in-time snapshot of a seller's available stock per
+// product. Used for conservation verification: at the end of
+// a global job, sum of all ACOShipmentItem.allocatedQty
+// (minus cancelled/rejected) for that product must equal the
+// supply that was available at snapshot time.
+model SellerSupplySnapshot {
+  id              String   @id @default(cuid())
+  jobId           String
+  sellerId        String
+  sellerProductId String
+  productName     String
+  district        String
+  upazilla        String
+  stockAtSnapshot Int
+  // seller's available stock when snapshot was taken
+  // (after subtracting existing pending outbound stock)
+  routedQty       Int      @default(0)
+  // updated incrementally as plans execute
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([sellerProductId])
+  @@index([productName])
+}
+
+model Truck {
+  id               String       @id @default(cuid())
+  jobId            String
+  job              ACOGlobalJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  truckNumber      Int
+  truckCode        String       @unique
+  capacityUnits    Int          @default(500)
+  loadedUnits      Int          @default(0)
+  status           String       @default("planning")
+  currentStopIndex Int          @default(0)
+  departedAt       DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  stops            TruckStop[]
+
+  @@index([jobId])
+  @@index([status])
+}
+
+model TruckStop {
+  id               String          @id @default(cuid())
+  truckId          String
+  truck            Truck           @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  stopIndex        Int
+  stopType         String
+  entityId         String
+  entityType       String
+  entityName       String
+  lat              Float
+  lng              Float
+  district         String
+  upazilla         String?
+  estimatedArrival DateTime?
+  actualArrival    DateTime?
+  departureTime    DateTime?
+  status           String          @default("pending")
+  notifiedAt       DateTime?
+  confirmedAt      DateTime?
+  acoShipmentId    String?
+  items            TruckStopItem[]
+  createdAt        DateTime        @default(now())
+
+  @@index([truckId])
+  @@index([stopIndex])
+}
+
+model TruckStopItem {
+  id            String    @id @default(cuid())
+  stopId        String
+  stop          TruckStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  productCode   String
+  productName   String
+  action        String
+  plannedQty    Int
+  confirmedQty  Int       @default(0)
+  status        String    @default("pending")
+  rejectionNote String?
+  processedAt   DateTime?
+
+  @@index([stopId])
+  @@index([productCode])
+}
+
+model SellerACONegotiation {
+  id              String        @id @default(cuid())
+  jobId           String
+  job             ACOGlobalJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sellerId        String
+  seller          Profile       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerProductId String
+  sellerProduct   SellerProduct @relation(fields: [sellerProductId], references: [id], onDelete: Cascade)
+  productCode     String
+  productName     String
+  requestedQty    Int
+  systemPrice     Float
+  sellerAskPrice  Float
+  offeredPrice    Float
+  counterPrice    Float?
+  finalPrice      Float?
+  status          String        @default("pending")
+  sellerNote      String?
+  expiresAt       DateTime
+  respondedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([jobId])
+  @@index([sellerId])
+  @@index([status])
+}
+
+model RealtimeAction {
+  id             String    @id @default(cuid())
+  userId         String
+  userRole       String
+  actionType     String
+  title          String
+  message        String
+  metadata       Json
+  priority       String    @default("normal")
+  isRead         Boolean   @default(false)
+  isActioned     Boolean   @default(false)
+  requiresAction Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId])
+  @@index([userRole])
+  @@index([isRead])
+  @@index([isActioned])
 }

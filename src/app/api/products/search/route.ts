@@ -21,20 +21,56 @@ export async function GET(request: Request) {
             },
             take: 8,
         });
-        return NextResponse.json({ products });
+
+          // For the seller UI we also surface which of these the caller
+          // already stocks. The `inInventory` map is keyed by globalProduct
+          // id and carries the SellerProduct's own id (needed for the
+          // PATCH /api/seller/inventory/[id] update path) plus the current
+          // stock and price so the form can prefill them.
+          const supabase = await createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          let inInventory: Record<
+              string,
+              { id: string; stock: number; price: number }
+          > = {};
+          if (user && products.length > 0) {
+              const owned = await prisma.sellerProduct.findMany({
+                  where: {
+                      sellerId: user.id,
+                      globalProductId: {
+                          in: products.map((p: { id: string }) => p.id),
+                      },
+                  },
+                  select: {
+                      id: true,
+                      stock: true,
+                      price: true,
+                      globalProductId: true,
+                  },
+              });
+              inInventory = Object.fromEntries(
+                  owned.map((sp) => [
+                      sp.globalProductId as string,
+                      {
+                          id: sp.id as string,
+                          stock: sp.stock as number,
+                          price: sp.price as number,
+                      },
+                  ]),
+              );
+          }
+
+          return NextResponse.json({ products, inInventory });
     }
 
-    // --- BUYER SEARCH LOGIC ---
     const category = searchParams.get("category") || "";
     const upazilla = searchParams.get("upazilla") || "";
-    const minPrice = parseFloat(searchParams.get("minPrice") || "0");
-    const maxPrice = parseFloat(searchParams.get("maxPrice") || "0");
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = 20;
+    const minPrice = Number(searchParams.get("minPrice") || 0);
+    const maxPrice = Number(searchParams.get("maxPrice") || 0);
+    const page = Math.max(1, Number(searchParams.get("page") || 1));
+    const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") || 20)));
 
     const where: any = {
-        status: "approved",
-        stock: { gt: 0 },
         AND: []
     };
 

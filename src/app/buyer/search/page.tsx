@@ -60,7 +60,7 @@ export default function BuyerSearchPage() {
       setTotalPages(data.totalPages || 1);
     } catch (err: any) {
       if (err.name === "AbortError") return;
-      setError(err.message || "Failed to load products");
+      setError((err instanceof Error ? err.message : String(err)) || "Failed to load products");
     } finally {
       setLoading(false);
     }
@@ -230,7 +230,7 @@ export default function BuyerSearchPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                {products.map(p => (
+                {products.map((p: any) => (
                   <ProductCard
                     key={p.id}
                     product={p}

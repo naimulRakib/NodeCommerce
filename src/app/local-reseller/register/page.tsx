@@ -76,7 +76,7 @@ export default function LocalResellerRegister() {
         setStep(2);
       }
     } catch (err: any) {
-      setErrors({ form: err.message });
+      setErrors({ form: (err instanceof Error ? err.message : String(err)) });
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +118,7 @@ export default function LocalResellerRegister() {
 
       router.push("/local-reseller/dashboard");
     } catch (err: any) {
-      setErrors({ form: err.message });
+      setErrors({ form: (err instanceof Error ? err.message : String(err)) });
       setIsLoading(false);
     }
   };

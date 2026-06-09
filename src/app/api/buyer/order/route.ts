@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { trackBehaviour } from "@/lib/behaviour";
 
 export async function POST(req: Request) {
-    const { user, error: authError } = await requireAuth();
-    if (authError) return authError;
-    const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
-    if (roleError) return roleError;
+    try {
+        const { user, error: authError } = await requireAuth();
+        if (authError) return authError;
+        const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
+        if (roleError) return roleError;
 
 
     const buyerId = user.id;
@@ -83,14 +84,20 @@ export async function POST(req: Request) {
             });
             createdOrders.push(order.id);
 
-            // Decrement Stock
-            for (const item of items) {
-                await tx.sellerProduct.update({
-                    where: { id: item.sellerProductId },
+            // Decrement Stock using Promise.all and atomic check
+            await Promise.all(items.map(async (item) => {
+                const updated = await tx.sellerProduct.updateMany({
+                    where: { 
+                        id: item.sellerProductId,
+                        stock: { gte: item.quantity } // atomic check
+                    },
                     data: { stock: { decrement: item.quantity } }
                 });
-            }
-
+                
+                if (updated.count === 0) {
+                    throw new Error(`Insufficient stock for product ID: ${item.sellerProductId} during checkout.`);
+                }
+            }));
         }
 
         // Clear Cart
@@ -101,6 +108,11 @@ export async function POST(req: Request) {
     trackBehaviour(buyerId, "purchase", { orderIds: createdOrders, totalAmount: grandTotalAmount, itemCount: totalItemsCount });
 
     return NextResponse.json({ success: true, orders: createdOrders });
+  } catch (error: any) {
+    console.error("Order processing failed:", error);
+    const status = (error instanceof Error && error.message.includes("Insufficient stock")) ? 400 : 500;
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status });
+  }
 }
 
 export async function GET(req: Request) {

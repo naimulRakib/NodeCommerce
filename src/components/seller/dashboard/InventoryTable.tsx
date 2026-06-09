@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import InventoryQRModal from "@/components/seller/dashboard/InventoryQRModal";
+import dynamic from "next/dynamic";
+
+const InventoryQRModal = dynamic(
+  () => import("@/components/seller/dashboard/InventoryQRModal"),
+  { ssr: false }
+);
 
 const TABS = [
   { id: "all", label: "All" },
@@ -41,45 +46,155 @@ function productBrandCategory(product) {
   return brand || category || "—";
 }
 
-function InlineNumberEdit({ value, onSave, onCancel, isSaving }) {
-  const [draft, setDraft] = useState(String(value));
+type EditProduct = {
+  id: string;
+  name: string;
+  productCode: string;
+  stock: number;
+  price: number;
+};
+
+function EditProductModal({
+  product,
+  isSaving,
+  error,
+  onSave,
+  onClose,
+}: {
+  product: EditProduct;
+  isSaving: boolean;
+  error: string | null;
+  onSave: (next: { stock: number; price: number }) => void;
+  onClose: () => void;
+}) {
+  const [stock, setStock] = useState(String(product.stock));
+  const [price, setPrice] = useState(String(product.price));
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
+    setStock(String(product.stock));
+    setPrice(String(product.price));
+    setFieldError(null);
+  }, [product.id, product.stock, product.price]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isSaving) onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isSaving, onClose]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSaving) return;
+
+    const stockNum = Number(stock);
+    const priceNum = Number(price);
+
+    if (stock === "" || !Number.isFinite(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+      setFieldError("Stock must be a whole number 0 or greater.");
+      return;
+    }
+    if (price === "" || !Number.isFinite(priceNum) || priceNum <= 0) {
+      setFieldError("Base price must be greater than 0.");
+      return;
+    }
+
+    setFieldError(null);
+    onSave({ stock: stockNum, price: priceNum });
+  };
 
   return (
-    <div className="flex items-center gap-1">
-      <input
-        type="number"
-        min="0"
-        step="any"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        className="w-20 px-2 py-1 text-sm border border-orange-300 rounded focus:outline-none focus:border-orange-500"
-        autoFocus
-        disabled={isSaving}
-      />
-      <button
-        type="button"
-        onClick={() => onSave(draft)}
-        disabled={isSaving}
-        className="p-1 text-green-600 hover:bg-green-50 rounded"
-        title="Save"
-        aria-label="Save"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !isSaving) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-product-title"
+        className="w-full max-w-md bg-white rounded-lg shadow-xl border border-gray-200"
       >
-        ✓
-      </button>
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={isSaving}
-        className="p-1 text-gray-500 hover:bg-gray-100 rounded"
-        title="Cancel"
-        aria-label="Cancel"
-      >
-        ✕
-      </button>
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 id="edit-product-title" className="text-lg font-semibold text-gray-900">
+            Edit stock &amp; price
+          </h3>
+          <p className="text-sm text-gray-500 mt-1 truncate">
+            {product.name}
+            <span className="block text-xs text-gray-400 font-mono mt-0.5">
+              {product.productCode}
+            </span>
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div>
+            <label htmlFor="edit-stock" className="block text-sm font-medium text-gray-700 mb-1">
+              Stock quantity
+            </label>
+            <input
+              id="edit-stock"
+              type="number"
+              min="0"
+              step="1"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              disabled={isSaving}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-price" className="block text-sm font-medium text-gray-700 mb-1">
+              Base price (BDT)
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 font-medium">
+                ৳
+              </span>
+              <input
+                id="edit-price"
+                type="number"
+                min="0"
+                step="any"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                disabled={isSaving}
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+          </div>
+
+          {(fieldError || error) && (
+            <p className="text-sm text-red-600">{fieldError || error}</p>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-semibold text-white bg-orange-500 rounded-md hover:bg-orange-600 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSaving && (
+                <span className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {isSaving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
@@ -90,8 +205,9 @@ export default function InventoryTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("all");
-  const [editingCell, setEditingCell] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<EditProduct | null>(null);
   const [savingId, setSavingId] = useState<any>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<any>(null);
   const [qrModal, setQrModal] = useState<any>(null);
 
@@ -137,8 +253,12 @@ export default function InventoryTable() {
     );
   }, [products, activeTab]);
 
-  const patchProduct = async (id, payload) => {
+  const patchProduct = async (
+    id: string,
+    payload: { stock?: number; price?: number }
+  ) => {
     setSavingId(id);
+    setEditError(null);
     try {
       const res = await fetch(`/api/seller/inventory/${id}`, {
         method: "PATCH",
@@ -152,9 +272,9 @@ export default function InventoryTable() {
       setProducts((prev) =>
         prev.map((p) => (p.id === id ? data.product : p))
       );
-      setEditingCell(null);
+      setEditingProduct(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed");
+      setEditError(err instanceof Error ? err.message : "Update failed");
     } finally {
       setSavingId(null);
     }
@@ -265,128 +385,117 @@ export default function InventoryTable() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((product) => {
-                const isSaving = savingId === product.id;
-                const isDeleting = deletingId === product.id;
-                const stockKey = `${product.id}-stock`;
-                const priceKey = `${product.id}-price`;
+                  const isDeleting = deletingId === product.id;
 
-                return (
-                  <tr key={product.id} className="hover:bg-gray-50/80">
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {productDisplayName(product)}
-                      <span className="block text-xs text-gray-400 font-mono mt-0.5">
-                        {product.productCode}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {productBrandCategory(product)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingCell === stockKey ? (
-                        <InlineNumberEdit
-                          value={product.stock}
-                          isSaving={isSaving}
-                          onCancel={() => setEditingCell(null)}
-                          onSave={(val) =>
-                            patchProduct(product.id, {
-                              stock: parseInt(val, 10),
-                            })
-                          }
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setEditingCell(stockKey)}
-                          className="hover:text-orange-600 hover:underline"
-                          title="Click to edit stock"
-                        >
-                          {product.stock}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editingCell === priceKey ? (
-                        <InlineNumberEdit
-                          value={product.price}
-                          isSaving={isSaving}
-                          onCancel={() => setEditingCell(null)}
-                          onSave={(val) =>
-                            patchProduct(product.id, {
-                              price: parseFloat(val),
-                            })
-                          }
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setEditingCell(priceKey)}
-                          className="hover:text-orange-600 hover:underline"
-                          title="Click to edit price"
-                        >
-                          ৳{Number(product.price).toLocaleString("en-BD")}
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <StatusBadge status={product.status} />
-                        {product.status?.toLowerCase() === "rejected" &&
-                          product.rejectionReason && (
-                            <span
-                              className="relative group cursor-help text-red-500"
-                              title={product.rejectionReason}
-                            >
-                              ⓘ
-                              <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition z-10">
-                                {product.rejectionReason}
+                  return (
+                    <tr key={product.id} className="hover:bg-gray-50/80">
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        {productDisplayName(product)}
+                        <span className="block text-xs text-gray-400 font-mono mt-0.5">
+                          {product.productCode}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {productBrandCategory(product)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        {product.stock}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900">
+                        ৳{Number(product.price).toLocaleString("en-BD")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={product.status} />
+                          {product.status?.toLowerCase() === "rejected" &&
+                            product.rejectionReason && (
+                              <span
+                                className="relative group cursor-help text-red-500"
+                                title={product.rejectionReason}
+                              >
+                                ⓘ
+                                <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition z-10">
+                                  {product.rejectionReason}
+                                </span>
                               </span>
-                            </span>
-                          )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setQrModal({
-                            productName: productDisplayName(product),
-                            productCode: product.productCode,
-                            price: product.price,
-                          })
-                        }
-                        className="p-2 rounded-md hover:bg-orange-50 text-orange-600"
-                        title="View QR code"
-                        aria-label={`QR code for ${productDisplayName(product)}`}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
+                            )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQrModal({
+                              productName: productDisplayName(product),
+                              productCode: product.productCode,
+                              price: product.price,
+                            })
+                          }
+                          className="p-2 rounded-md hover:bg-orange-50 text-orange-600"
+                          title="View QR code"
+                          aria-label={`QR code for ${productDisplayName(product)}`}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z"
-                          />
-                        </svg>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(product)}
-                        disabled={isDeleting}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
-                      >
-                        {isDeleting ? "Deleting…" : "Delete"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z"
+                            />
+                          </svg>
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="inline-flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingProduct({
+                                id: product.id,
+                                name: productDisplayName(product),
+                                productCode: product.productCode,
+                                stock: Number(product.stock),
+                                price: Number(product.price),
+                              })
+                            }
+                            className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-800 text-sm font-medium"
+                            title="Edit stock &amp; price"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(product)}
+                            disabled={isDeleting}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium disabled:opacity-50"
+                          >
+                            {isDeleting ? "Deleting…" : "Delete"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -400,6 +509,20 @@ export default function InventoryTable() {
         price={qrModal?.price}
         productName={qrModal?.productName}
       />
-    </section>
-  );
-}
+
+        {editingProduct && (
+          <EditProductModal
+            product={editingProduct}
+            isSaving={savingId === editingProduct.id}
+            error={editError}
+            onClose={() => {
+              if (savingId === editingProduct.id) return;
+              setEditingProduct(null);
+              setEditError(null);
+            }}
+            onSave={(next) => patchProduct(editingProduct.id, next)}
+          />
+        )}
+      </section>
+    );
+  }

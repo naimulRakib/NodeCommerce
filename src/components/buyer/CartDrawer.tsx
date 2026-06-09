@@ -8,7 +8,7 @@ import OrderSummary from "@/components/buyer/OrderSummary";
 import OrderConfirmModal from "@/components/buyer/OrderConfirmModal";
 
 export default function CartDrawer() {
-  const { isCartOpen, setIsCartOpen, cartItems, updateQuantity, removeFromCart, refreshCart } = useCart();
+  const { isCartOpen, setIsCartOpen, cartItems, updateQuantity, removeFromCart, refreshCart }: any = useCart();
   const [view, setView] = useState<"cart" | "checkout">("cart");
   const [profile, setProfile] = useState<any>(null);
   const [placedOrders, setPlacedOrders] = useState<string[]>([]);
@@ -45,7 +45,7 @@ export default function CartDrawer() {
     return acc;
   }, {});
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.sellerProduct.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((sum: number, item: any) => sum + (item.sellerProduct.price * item.quantity), 0);
 
   const handlePlaceOrder = async (note: string) => {
     try {
@@ -64,7 +64,7 @@ export default function CartDrawer() {
       // Refresh cart immediately so badge clears
       await refreshCart();
     } catch (err: any) {
-      alert(err.message);
+      alert((err instanceof Error ? err.message : String(err)));
     }
   };
 

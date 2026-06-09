@@ -43,7 +43,7 @@ export async function PATCH(
     return NextResponse.json(updatedItem);
   } catch (error: any) {
     console.error("Failed to update upazilla inventory:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }
 
@@ -88,6 +88,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Failed to delete upazilla inventory:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }

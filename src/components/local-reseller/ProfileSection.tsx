@@ -3,31 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabaseClient } from "@/lib/supabase";
 import bdLocations from "@/data/bangladesh-locations.json";
-
-function Toast({ message, type, onClose }: { message: string, type: string, onClose: () => void }) {
-  if (!message) return null;
-
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg text-sm font-medium ${
-        type === "success"
-          ? "bg-green-600 text-white"
-          : "bg-red-600 text-white"
-      }`}
-      role="status"
-    >
-      <span>{message}</span>
-      <button
-        type="button"
-        onClick={onClose}
-        className="opacity-80 hover:opacity-100"
-        aria-label="Dismiss"
-      >
-        ×
-      </button>
-    </div>
-  );
-}
+import { useToast } from "@/components/layout/ToastProvider";
 
 function FieldRow({ label, children }: { label: string, children: React.ReactNode }) {
   return (
@@ -61,12 +37,7 @@ export default function ProfileSection() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState({ message: "", type: "success" });
-
-  const showToast = useCallback((message: string, type = "success") => {
-    setToast({ message, type });
-    window.setTimeout(() => setToast({ message: "", type }), 4000);
-  }, []);
+  const { showToast } = useToast();
 
   const profileToForm = (profile: any) => ({
     fullName: profile.fullName ?? "",
@@ -278,12 +249,6 @@ export default function ProfileSection() {
 
   return (
     <section className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ message: "", type: "success" })}
-      />
-
       <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900">Reseller Profile</h2>
         {!editing ? (

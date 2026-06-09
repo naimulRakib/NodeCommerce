@@ -51,7 +51,7 @@ export default function RegisterStepOne({ data, onChange, onNext }: any) {
         onNext();
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      setError((err instanceof Error ? err.message : String(err)) || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }

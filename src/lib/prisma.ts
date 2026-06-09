@@ -1,47 +1,25 @@
 import { PrismaClient } from "@/generated/prisma";
+import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { DATABASE_URL } from "@/lib/env";
 
-/**
- * Bump when prisma/schema.prisma changes so dev hot-reload does not keep a stale client.
- */
-const PRISMA_SCHEMA_VERSION = "2026-03-20-profile-fields";
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient | undefined;
+  pgPool: Pool | undefined;
+};
 
-declare global {
-  var prisma: PrismaClient | undefined;
-  var prismaSchemaVersion: string | undefined;
-}
+// Reuse existing pool across hot reloads to prevent connection leaks.
+const pool = globalForPrisma.pgPool ?? new Pool({ connectionString: DATABASE_URL });
+const adapter = new PrismaPg(pool);
 
-const globalForPrisma = globalThis;
-
-import { Pool } from 'pg';
-
-function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL;
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
-  
-  return new PrismaClient({
+export const prisma =
+  globalForPrisma.prisma ?? new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development" ? ["error"] : [],
+    log: ['error'],
   });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+  globalForPrisma.pgPool = pool;
 }
 
-function getPrismaClient() {
-  const stale =
-    globalForPrisma.prisma &&
-    globalForPrisma.prismaSchemaVersion !== PRISMA_SCHEMA_VERSION;
-
-  if (stale) {
-    void globalForPrisma.prisma.$disconnect?.();
-    globalForPrisma.prisma = undefined;
-  }
-
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = createPrismaClient();
-    globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
-  }
-
-  return globalForPrisma.prisma;
-}
-
-export const prisma = getPrismaClient();

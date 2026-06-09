@@ -14,10 +14,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "City and Upazilla are required" }, { status: 400 });
     }
 
-    const reseller = await prisma.upazillaReseller.upsert({
+    // Check if this user already has a reseller record
+    const existing = await prisma.upazillaReseller.findUnique({
       where: { id: user.id },
-      update: { city, upazilla },
-      create: {
+    });
+
+    if (existing) {
+      // User already registered — just update city/upazilla if they changed
+      // (the city+upazilla combo belongs to this user so it's safe to update)
+      const reseller = await prisma.upazillaReseller.update({
+        where: { id: user.id },
+        data: { city, upazilla },
+      });
+      return NextResponse.json({ reseller });
+    }
+
+    // New user — check if that city+upazilla slot is already taken by someone else
+    const takenSlot = await prisma.upazillaReseller.findUnique({
+      where: { city_upazilla: { city, upazilla } },
+    });
+
+    if (takenSlot) {
+      return NextResponse.json(
+        {
+          error: `The upazilla "${upazilla}" in "${city}" already has a registered reseller. Each upazilla can only have one reseller account.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // Safe to create
+    const reseller = await prisma.upazillaReseller.create({
+      data: {
         id: user.id,
         email: user.email!,
         city,
@@ -28,6 +56,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ reseller });
   } catch (error: any) {
     console.error("Upazilla Reseller Login API Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: (error instanceof Error ? error.message : String(error)) || "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+

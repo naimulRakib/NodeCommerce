@@ -28,3 +28,6 @@ export function getDistrictUpazilas(district: string) {
 export function getUniqueDistricts() {
   return DISTRICTS;
 }
+
+export const upazillas = UPAZILLAS;
+

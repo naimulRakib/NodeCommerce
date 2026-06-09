@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/layout/ToastProvider";
 
 interface Transfer {
   id: string;
@@ -23,13 +24,11 @@ export default function IncomingStockPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"pending" | "accepted" | "rejected">("pending");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const showToast = (message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
+  const { showToast } = useToast();
 
   const fetchTransfers = useCallback(async (isMounted: boolean = true) => {
     try {
@@ -38,7 +37,7 @@ export default function IncomingStockPanel() {
       const data = await res.json();
       if (isMounted) setTransfers(data);
     } catch (err: any) {
-      if (isMounted) setError(err.message);
+      if (isMounted) setError((err instanceof Error ? err.message : String(err)));
     } finally {
       if (isMounted) setLoading(false);
     }
@@ -46,6 +45,7 @@ export default function IncomingStockPanel() {
 
   useEffect(() => {
     let isMounted = true;
+     
     fetchTransfers(isMounted);
     return () => { isMounted = false; };
   }, [fetchTransfers]);
@@ -55,10 +55,12 @@ export default function IncomingStockPanel() {
   const acceptedTransfers = transfers.filter(t => t.status === "accepted");
   const rejectedTransfers = transfers.filter(t => t.status === "rejected");
 
-  const displayedTransfers = 
+  const filteredTransfers = 
     activeTab === "pending" ? pendingTransfers : 
     activeTab === "accepted" ? acceptedTransfers : 
     rejectedTransfers;
+
+  const displayedTransfers = filteredTransfers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleAction = async (transferId: string, action: "accept" | "reject") => {
     setProcessingId(transferId);
@@ -87,7 +89,7 @@ export default function IncomingStockPanel() {
         setActiveTab("rejected");
       }
     } catch (err: any) {
-      showToast(err.message, "error");
+      showToast((err instanceof Error ? err.message : String(err)), "error");
     } finally {
       setProcessingId(null);
     }
@@ -113,17 +115,11 @@ export default function IncomingStockPanel() {
 
   return (
     <div className="space-y-6 relative">
-      {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg font-medium text-white transition-opacity ${toast.type === "success" ? "bg-green-600" : "bg-red-600"}`}>
-          {toast.message}
-        </div>
-      )}
-
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setActiveTab("pending")}
+            onClick={() => { setActiveTab("pending"); setCurrentPage(1); }}
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
               activeTab === "pending"
                 ? "border-orange-500 text-orange-600"
@@ -138,7 +134,7 @@ export default function IncomingStockPanel() {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("accepted")}
+            onClick={() => { setActiveTab("accepted"); setCurrentPage(1); }}
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === "accepted"
                 ? "border-orange-500 text-orange-600"
@@ -148,7 +144,7 @@ export default function IncomingStockPanel() {
             Accepted
           </button>
           <button
-            onClick={() => setActiveTab("rejected")}
+            onClick={() => { setActiveTab("rejected"); setCurrentPage(1); }}
             className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === "rejected"
                 ? "border-orange-500 text-orange-600"
@@ -243,6 +239,36 @@ export default function IncomingStockPanel() {
           ))
         )}
       </div>
+
+      {filteredTransfers.length > itemsPerPage && (
+        <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6 mt-4 bg-transparent">
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredTransfers.length)}</span> of <span className="font-medium">{filteredTransfers.length}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.min(Math.ceil(filteredTransfers.length / itemsPerPage), currentPage + 1))}
+                  disabled={currentPage === Math.ceil(filteredTransfers.length / itemsPerPage)}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

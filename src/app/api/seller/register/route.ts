@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       where: { id: data.user.id },
     });
 
-    let profile = existing
+    let profile: any = existing
       ? await prisma.profile.update({
           where: { id: data.user.id },
           data: profileFields,

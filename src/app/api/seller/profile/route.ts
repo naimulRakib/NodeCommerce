@@ -12,9 +12,9 @@ export async function GET() {
     const { hasRole, error: roleError } = await requireRole(user.id, "seller");
     if (roleError) return roleError;
 
-  const profile = await prisma.profile.findUnique({
-    where: { id: user.id },
-  });
+    const profile: any = await prisma.profile.findUnique({
+      where: { id: user.id }
+    }) || {};
 
   if (!profile) {
     return NextResponse.json(
@@ -55,7 +55,7 @@ export async function PATCH(request) {
   }
 
   try {
-    let profile = await prisma.profile.update({
+    let profile: any = await prisma.profile.update({
       where: { id: user.id },
       data,
     });

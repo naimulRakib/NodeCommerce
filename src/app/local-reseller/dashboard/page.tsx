@@ -8,6 +8,7 @@ import InventoryTable from "@/components/local-reseller/InventoryTable";
 import DeliverySection from "@/components/local-reseller/DeliverySection";
 import ProfileSection from "@/components/local-reseller/ProfileSection";
 import IncomingStockPanel from "@/components/local-reseller/IncomingStockPanel";
+import DemandPanel from "@/components/local-reseller/DemandPanel";
 
 export default function LocalResellerDashboardPage() {
   const router = useRouter();
@@ -110,6 +111,7 @@ export default function LocalResellerDashboardPage() {
               <option value="inventory">Inventory</option>
               <option value="incoming">Incoming Stock</option>
               <option value="delivery">Delivery</option>
+              <option value="demand">Demand Requests</option>
               <option value="profile">Profile</option>
             </select>
           </div>
@@ -154,6 +156,17 @@ export default function LocalResellerDashboardPage() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab("demand")}
+                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "demand"
+                      ? "border-orange-500 text-orange-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  Demand Requests
+                </button>
+
+                <button
                   onClick={() => setActiveTab("profile")}
                   className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                     activeTab === "profile"
@@ -173,6 +186,7 @@ export default function LocalResellerDashboardPage() {
           {activeTab === "inventory" && <InventoryTable />}
           {activeTab === "incoming" && <IncomingStockPanel />}
           {activeTab === "delivery" && <DeliverySection />}
+          {activeTab === "demand" && <DemandPanel />}
           {activeTab === "profile" && (
             <div className="max-w-3xl">
               <ProfileSection />

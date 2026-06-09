@@ -1,8 +1,15 @@
 import { supabaseClient } from "@/lib/supabase";
 
+/**
+ * Syncs the current Supabase session into the role-appropriate profile
+ * table. The server-side route (`/api/auth/sync-profile`) inspects every
+ * role table and updates the matching one — this lib no longer hardcodes
+ * a single endpoint.
+ */
 export async function syncProfileToDatabase(): Promise<{
   ok: boolean;
   error?: string;
+  role?: string;
   profile?: unknown;
 }> {
   const {
@@ -17,7 +24,7 @@ export async function syncProfileToDatabase(): Promise<{
     };
   }
 
-  const response = await fetch("/api/seller/register", {
+  const response = await fetch("/api/auth/sync-profile", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.access_token}`,
@@ -36,5 +43,5 @@ export async function syncProfileToDatabase(): Promise<{
     };
   }
 
-  return { ok: true, profile: body.profile };
+  return { ok: true, role: body.role, profile: body.profile };
 }

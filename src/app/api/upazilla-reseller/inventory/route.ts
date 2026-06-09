@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     return NextResponse.json(inventory);
   } catch (error: any) {
     console.error("Failed to fetch upazilla inventory:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }
 
@@ -45,10 +45,13 @@ export async function POST(req: Request) {
     if (!productName || !productName.trim()) {
       return NextResponse.json({ error: "Product Name is required" }, { status: 400 });
     }
+    if (productName.trim().length > 255) {
+      return NextResponse.json({ error: "Product Name is too long (max 255 characters)" }, { status: 400 });
+    }
 
     const qty = parseInt(quantity, 10);
-    if (isNaN(qty) || qty < 1) {
-      return NextResponse.json({ error: "Quantity must be at least 1" }, { status: 400 });
+    if (isNaN(qty) || qty < 1 || qty > 2147483647) {
+      return NextResponse.json({ error: "Quantity must be a valid positive number" }, { status: 400 });
     }
 
     const item = await prisma.upazillaStockItem.create({
@@ -64,6 +67,6 @@ export async function POST(req: Request) {
     return NextResponse.json(item);
   } catch (error: any) {
     console.error("Failed to add upazilla inventory:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }

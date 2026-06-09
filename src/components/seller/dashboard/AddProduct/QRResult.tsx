@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 export default function QRResult({
   qrCode,
   productName,
+  updated = false,
   onAddAnother,
   onGoToInventory,
 }) {
@@ -48,10 +49,41 @@ export default function QRResult({
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
+  if (updated) {
+    return (
+      <div className="max-w-xl mx-auto bg-white rounded-md shadow-sm border border-green-200 p-8 text-center">
+        <div className="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mx-auto mb-4 text-2xl">
+          ✓
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {productName} updated
+        </h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Your stock and price changes have been saved to the existing
+          inventory entry. No new QR code was generated.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={onAddAnother}
+            className="bg-orange-500 text-white px-6 py-2 rounded-md font-semibold hover:bg-orange-600 transition shadow-sm"
+          >
+            Add / Edit Another Product
+          </button>
+          <button
+            onClick={onGoToInventory}
+            className="border border-gray-300 text-gray-800 px-6 py-2 rounded-md font-semibold hover:bg-gray-50 transition shadow-sm"
+          >
+            View in Inventory →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-xl mx-auto bg-white rounded-md shadow-sm border border-gray-200 p-8 text-center animate-in zoom-in-95 duration-500 fade-in">
       <h2 className="text-xl font-bold text-gray-900 mb-6">{productName}</h2>
-      
+
       <div className="flex flex-col items-center mb-6">
         <div className="p-4 border-2 border-dashed border-gray-200 rounded-lg inline-block bg-white shadow-sm mb-4">
           <QRCodeSVG
@@ -62,7 +94,7 @@ export default function QRResult({
             includeMargin={false}
           />
         </div>
-        
+
         <div className="w-full max-w-sm">
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border border-gray-200 rounded-md font-mono text-sm text-gray-700 overflow-hidden shadow-inner">
             <span className="truncate mr-2">{qrCode}</span>
@@ -75,7 +107,7 @@ export default function QRResult({
           </div>
         </div>
       </div>
-      
+
       <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
         <button
           onClick={handleDownload}
@@ -93,7 +125,7 @@ export default function QRResult({
           Add Another Product
         </button>
       </div>
-      
+
       <div className="pt-6 border-t border-gray-100">
         <button
           onClick={onGoToInventory}

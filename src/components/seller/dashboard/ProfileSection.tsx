@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseClient } from "@/lib/supabase";
 
 function Toast({ message, type, onClose }) {
@@ -62,9 +62,18 @@ export default function ProfileSection() {
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ message: "", type: "success" });
 
+  const toastTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   const showToast = useCallback((message, type = "success") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ message, type });
-    window.setTimeout(() => setToast({ message: "", type }), 4000);
+    toastTimerRef.current = window.setTimeout(() => setToast({ message: "", type }), 4000);
   }, []);
 
   const profileToForm = (profile) => ({

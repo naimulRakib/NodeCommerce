@@ -60,7 +60,21 @@ function OrderTimeline({ status }: { status: string }) {
   );
 }
 
+import { Suspense } from "react";
+
 export default function BuyerDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <BuyerDashboardContent />
+    </Suspense>
+  );
+}
+
+function BuyerDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "profile";
@@ -141,7 +155,7 @@ export default function BuyerDashboardPage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      alert(err.message);
+      alert((err instanceof Error ? err.message : String(err)));
     } finally {
       setSavingProfile(false);
     }
@@ -156,7 +170,7 @@ export default function BuyerDashboardPage() {
       if (!res.ok) throw new Error(data.error || "Failed to cancel order");
       fetchOrders();
     } catch (err: any) {
-      alert(err.message);
+      alert((err instanceof Error ? err.message : String(err)));
     } finally {
       setCancellingId(null);
     }
@@ -172,7 +186,7 @@ export default function BuyerDashboardPage() {
 
   const filteredOrders = orderFilter === "All"
     ? orders
-    : orders.filter(o => o.status === orderFilter.toLowerCase());
+    : orders.filter((o: any) => o.status === orderFilter.toLowerCase());
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 gap-8">

@@ -1,0 +1,11 @@
+
+> nodecom@0.1.0 lint
+> eslint
+
+
+/Users/naimulislam/Desktop/Lightborn/NodeCommerce/nodecom/src/components/superdashboard/PheromoneLayer.tsx
+  45:27  error  React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+  85:25  error  React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+✖ 2 problems (2 errors, 0 warnings)
+

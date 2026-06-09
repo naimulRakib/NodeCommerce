@@ -42,10 +42,18 @@ export default function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         return;
       }
 
-      if (redirectTo) {
-        router.push(redirectTo);
+      let finalRedirect = redirectTo;
+      if (sync.role === "buyer") finalRedirect = "/";
+      else if (sync.role === "district_reseller") finalRedirect = "/district-reseller/dashboard";
+      else if (sync.role === "upazilla_reseller") finalRedirect = "/upazilla-reseller/dashboard";
+      else if (sync.role === "local_reseller") finalRedirect = "/local-reseller/dashboard";
+      else if (sync.role === "seller") finalRedirect = "/seller/dashboard";
+
+      if (finalRedirect) {
+        router.push(finalRedirect);
+      } else {
+        onSuccess?.();
       }
-      onSuccess?.();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred"

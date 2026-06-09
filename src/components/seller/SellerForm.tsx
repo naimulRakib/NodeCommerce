@@ -50,7 +50,7 @@ export default function SellerForm() {
       );
     }
     return false;
-  }, [form.currentStep, form.formData, form.errors]);
+  }, [form]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

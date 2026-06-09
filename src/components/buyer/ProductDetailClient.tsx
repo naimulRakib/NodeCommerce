@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cartContext";
 
-export default function ProductDetailClient({ product }: { product: any }) {
+export default function ProductDetailClient({ product }: any) {
   const [qty, setQty] = useState(1);
   const { addToCart } = useCart();
   const [adding, setAdding] = useState(false);

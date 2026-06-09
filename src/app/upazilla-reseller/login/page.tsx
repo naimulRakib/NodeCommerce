@@ -42,7 +42,7 @@ export default function UpazillaResellerLoginPage() {
       // Success, move to step 2
       setStep(2);
     } catch (err: any) {
-      setError(err.message);
+      setError((err instanceof Error ? err.message : String(err)));
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +72,7 @@ export default function UpazillaResellerLoginPage() {
       router.push("/upazilla-reseller/dashboard");
       router.refresh();
     } catch (err: any) {
-      setError(err.message);
+      setError((err instanceof Error ? err.message : String(err)));
       setIsLoading(false); // only stop loading on error, let it spin on success redirect
     }
   };

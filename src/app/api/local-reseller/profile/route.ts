@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth, requireRole } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
+import { validateLocalResellerProfilePatch } from "@/lib/validate-local-reseller-profile";
 
 export async function GET(req: Request) {
   try {
@@ -8,7 +9,6 @@ export async function GET(req: Request) {
     if (authError) return authError;
     const { hasRole, error: roleError } = await requireRole(user.id, "local_reseller");
     if (roleError) return roleError;
-
 
     const profile = await prisma.localReseller.findUnique({
       where: { id: user.id }
@@ -20,7 +20,10 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ profile, email: user.email });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: (error instanceof Error ? error.message : String(error)) || "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -31,24 +34,38 @@ export async function PATCH(req: Request) {
     const { hasRole, error: roleError } = await requireRole(user.id, "local_reseller");
     if (roleError) return roleError;
 
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    const body = await req.json();
-    const allowedUpdates: any = {};
-    const updatableFields = ["fullName", "phone", "bio", "username", "city", "upazilla", "lat", "lng", "avatarUrl"];
-    
-    updatableFields.forEach(field => {
-      if (body[field] !== undefined) {
-        allowedUpdates[field] = body[field];
-      }
-    });
+    let data;
+    try {
+      data = validateLocalResellerProfilePatch(body);
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Validation failed" },
+        { status: 400 }
+      );
+    }
 
-    const updatedProfile = await prisma.localReseller.update({
-      where: { id: user.id },
-      data: allowedUpdates
+    const updatedProfile = await prisma.$transaction(async (tx) => {
+      return tx.localReseller.update({
+        where: { id: user.id },
+        data,
+      });
     });
 
     return NextResponse.json({ profile: updatedProfile });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    if (error?.code === "P2025") {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: (error instanceof Error ? error.message : String(error)) || "Internal server error" },
+      { status: 500 }
+    );
   }
 }

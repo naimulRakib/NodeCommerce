@@ -90,7 +90,7 @@ export default function OrdersTab() {
         setOrders(prev => prev.map(o => o.id === orderId ? data.order : o));
       }
     } catch (err: any) {
-      alert(err.message);
+      alert((err instanceof Error ? err.message : String(err)));
       fetchOrders(); // Revert
     } finally {
       setProcessingId(null);

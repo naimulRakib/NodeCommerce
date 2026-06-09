@@ -11,6 +11,7 @@ export async function GET(req: Request) {
 
 
     const transfers = await prisma.stockTransfer.findMany({
+      take: 200,
       where: {
         localResellerId: user.id
       },
@@ -30,7 +31,7 @@ export async function GET(req: Request) {
     return NextResponse.json(transfers);
   } catch (error: any) {
     console.error("Failed to fetch incoming transfers:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }
 
@@ -121,7 +122,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Failed to process stock transfer:", error);
-    const status = error.message === "Forbidden" ? 403 : (error.message === "Transfer is already processed" || error.message === "Invalid action. Must be 'accept' or 'reject'" ? 400 : 500);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status });
+    const status = (error instanceof Error ? error.message : String(error)) === "Forbidden" ? 403 : ((error instanceof Error ? error.message : String(error)) === "Transfer is already processed" || (error instanceof Error ? error.message : String(error)) === "Invalid action. Must be 'accept' or 'reject'" ? 400 : 500);
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status });
   }
 }

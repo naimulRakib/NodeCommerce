@@ -75,7 +75,7 @@ export async function PATCH(request, { params }) {
     );
   }
 
-  const profile = await ensureSellerCode(
+  const profile: any = await ensureSellerCode(
     await prisma.profile.findUnique({
       where: { id: user.id },
       select: { sellerCode: true },

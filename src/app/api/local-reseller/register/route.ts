@@ -46,6 +46,6 @@ export async function POST(req: Request) {
     return NextResponse.json(reseller);
   } catch (error: any) {
     console.error("Local Reseller Registration Error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }

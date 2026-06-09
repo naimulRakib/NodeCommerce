@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { trackBehaviour } from "@/lib/behaviour";
 
 export async function GET(req: Request) {
-    const { user, error: authError } = await requireAuth();
-    if (authError) return authError;
-    const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
-    if (roleError) return roleError;
+    try {
+        const { user, error: authError } = await requireAuth();
+        if (authError) return authError;
+        const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
+        if (roleError) return roleError;
 
 
     const items = await prisma.cartItem.findMany({
@@ -26,13 +27,18 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ items });
+    } catch (error: any) {
+        console.error("Fetch cart error:", error);
+        return NextResponse.json({ error: "Server error while fetching cart" }, { status: 500 });
+    }
 }
 
 export async function POST(req: Request) {
-    const { user, error: authError } = await requireAuth();
-    if (authError) return authError;
-    const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
-    if (roleError) return roleError;
+    try {
+        const { user, error: authError } = await requireAuth();
+        if (authError) return authError;
+        const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
+        if (roleError) return roleError;
 
 
     const body = await req.json();
@@ -50,8 +56,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Not enough stock available" }, { status: 400 });
     }
 
-    try {
-        // Ensure BuyerProfile exists to prevent FK constraint error
+    // Ensure BuyerProfile exists to prevent FK constraint error
         const buyerExists = await prisma.buyerProfile.findUnique({ where: { id: user.id } });
         if (!buyerExists) {
             await prisma.buyerProfile.create({
@@ -89,8 +94,8 @@ export async function POST(req: Request) {
         trackBehaviour(user.id, "add_to_cart", { sellerProductId, quantity });
 
         return NextResponse.json({ cartItem });
-    } catch (e: any) {
-        console.error("Add to cart error:", e);
+    } catch (_e: any) {
+        console.error("Add to cart error:", _e);
         return NextResponse.json({ error: "Server error while adding to cart" }, { status: 500 });
     }
 }

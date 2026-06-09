@@ -8,8 +8,15 @@ import InventoryTable from "@/components/seller/dashboard/InventoryTable";
 import ProfileSection from "@/components/seller/dashboard/ProfileSection";
 import ProductSearch from "@/components/seller/dashboard/AddProduct/ProductSearch";
 import CustomProductForm from "@/components/seller/dashboard/AddProduct/CustomProductForm";
-import QRResult from "@/components/seller/dashboard/AddProduct/QRResult";
+import dynamic from "next/dynamic";
+
+const QRResult = dynamic(
+  () => import("@/components/seller/dashboard/AddProduct/QRResult"),
+  { ssr: false }
+);
 import OrdersTab from "@/components/seller/dashboard/OrdersTab";
+import { StockOrdersPanel } from "@/components/seller/StockOrdersPanel";
+import { AcoShipmentsPanel } from "@/components/seller/AcoShipmentsPanel";
 
 export default function SellerDashboardPage() {
   const router = useRouter();
@@ -37,19 +44,21 @@ export default function SellerDashboardPage() {
         }
         
         const res = await fetch("/api/seller/profile");
-        if (res.status === 404) {
+        if (!res.ok) {
           router.replace("/seller");
           return;
         }
-        if (res.ok) {
-          const profileData = await res.json();
-          if (isMounted) setSellerProfile(profileData.profile);
-        }
+        const profileData = await res.json();
+        if (isMounted) setSellerProfile(profileData.profile);
 
         // Fetch stats in background
         fetch("/api/seller/stats")
-          .then(r => r.json())
-          .then(data => { if (isMounted) setStats(data); })
+          .then(async r => {
+            if (r.ok) {
+              const data = await r.json();
+              if (isMounted) setStats(data);
+            }
+          })
           .catch(() => {});
       } catch (err) {
         console.error(err);
@@ -79,28 +88,128 @@ export default function SellerDashboardPage() {
     if (!product) {
       setExistingStockPrice({ stock: "", price: "" });
       setExistingErrors({});
-    }
-  };
+        return;
+      }
+      // If the seller already stocks this GlobalProduct, prefill the
+      // form with the current stock & price so the submit call updates
+      // the existing row (PATCH) rather than re-creating one.
+      if (product.existing) {
+        setExistingStockPrice({
+          stock: String(product.existing.stock),
+          price: String(product.existing.price),
+        });
+      } else {
+        setExistingStockPrice({ stock: "", price: "" });
+      }
+      setExistingErrors({});
+    };
 
-  const submitProductData = async (data) => {
-    setCurrentStage("C"); // Submitting state
-    try {
-      const res = await fetch("/api/seller/product", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+    const submitProductData = async (data) => {
+      setCurrentStage("C"); // Submitting state
+      try {
+        // If the product is already in the seller's inventory, route
+        // straight to PATCH /api/seller/inventory/[id] and skip the
+        // POST (which would 409). This makes the UX feel like a single
+        // "save" regardless of whether it's a create or an update.
+        if (selectedProduct?.existing) {
+          const updateRes = await fetch(
+            `/api/seller/inventory/${selectedProduct.existing.id}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                stock: Number(data.stock),
+                price: Number(data.price),
+              }),
+            },
+          );
+          const updateData = await updateRes.json();
+          if (!updateRes.ok) {
+            throw new Error(updateData.error || "Failed to update product");
+          }
+          // Show a success state and then bounce the user to the
+          // inventory table so they can see the updated row.
+          setVerificationResult({
+            productCode: updateData.product?.productCode || "",
+            qrCode: updateData.product?.qrCode || "",
+            sellerCode:
+              updateData.product?.qrCode?.split?.("_")?.[0] || "",
+            price: updateData.product?.price ?? Number(data.price),
+            productName:
+              updateData.product?.customName ||
+              updateData.product?.globalProduct?.name ||
+              selectedProduct.name ||
+              "Product",
+            updated: true,
+          });
+          setCurrentStage("D");
+          return;
+        }
+
+        const res = await fetch("/api/seller/product", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const resData = await res.json();
+
+        // Race-safe: if the server detected a duplicate (e.g. another
+        // browser tab added the same product between search and submit),
+        // switch to the PATCH path automatically.
+        if (
+          res.status === 409 &&
+          resData.code === "DUPLICATE_SELLER_PRODUCT" &&
+          resData.existing?.id
+        ) {
+          const existingId = resData.existing.id;
+          const updateRes = await fetch(
+            `/api/seller/inventory/${existingId}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                stock: Number(data.stock),
+                price: Number(data.price),
+              }),
+            },
+          );
+          const updateData = await updateRes.json();
+          if (!updateRes.ok) {
+            throw new Error(
+              updateData.error || "Failed to update existing product",
+            );
+          }
+          setVerificationResult({
+            productCode: updateData.product?.productCode || "",
+            qrCode: updateData.product?.qrCode || "",
+            sellerCode:
+              updateData.product?.qrCode?.split?.("_")?.[0] || "",
+            price: updateData.product?.price ?? Number(data.price),
+            productName:
+              updateData.product?.customName ||
+              updateData.product?.globalProduct?.name ||
+              selectedProduct?.name ||
+              "Product",
+            updated: true,
+          });
+          setCurrentStage("D");
+          return;
+        }
+
+        if (!res.ok) throw new Error(resData.error || "Failed to submit");
+
+      setVerificationResult({
+        productCode: resData.product?.productCode || "",
+        qrCode: resData.product?.qrCode || "",
+        sellerCode: resData.product?.qrCode?.split?.("_")?.[0] || "",
+        price: resData.product?.price ?? Number(data.price),
+        productName:
+          resData.product?.customName ||
+          resData.product?.globalProduct?.name ||
+          selectedProduct?.name ||
+          "Product",
+        updated: false,
       });
-      const resData = await res.json();
-      if (!res.ok) throw new Error(resData.error || "Failed to submit");
-      
-      const resultData = {
-        productCode: resData.product.productCode,
-        qrCode: resData.product.qrCode,
-        sellerCode: resData.product.qrCode.split("_")[0],
-        price: resData.product.price,
-        productName: resData.product.customName || resData.product.globalProduct?.name || "Product",
-      };
-      setVerificationResult(resultData);
       setCurrentStage("D");
     } catch (err) {
       alert("Error: " + err.message);
@@ -215,18 +324,19 @@ export default function SellerDashboardPage() {
     }
 
     if (currentStage === "D") {
-      return (
-        <QRResult 
-          qrCode={verificationResult.qrCode}
-          productName={verificationResult.productName}
-          onAddAnother={resetAddProductFlow}
-          onGoToInventory={() => {
-            resetAddProductFlow();
-            setActiveTab("inventory");
-          }}
-        />
-      );
-    }
+        return (
+          <QRResult
+            qrCode={verificationResult.qrCode}
+            productName={verificationResult.productName}
+            updated={verificationResult.updated}
+            onAddAnother={resetAddProductFlow}
+            onGoToInventory={() => {
+              resetAddProductFlow();
+              setActiveTab("inventory");
+            }}
+          />
+        );
+      }
   };
 
   if (loadingAuth) {
@@ -298,7 +408,27 @@ export default function SellerDashboardPage() {
             }`}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-            <span className="text-xs md:text-sm">Orders</span>
+            <span className="text-xs md:text-sm">B2C Orders</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("stock-orders")}
+            className={`flex flex-col md:flex-row items-center gap-1 md:gap-3 px-2 md:px-4 py-3 md:py-3 rounded-md transition-colors ${
+              activeTab === "stock-orders" ? "bg-orange-50 text-orange-600 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            <span className="text-xs md:text-sm">Stock Orders</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("aco-shipments")}
+            className={`flex flex-col md:flex-row items-center gap-1 md:gap-3 px-2 md:px-4 py-3 md:py-3 rounded-md transition-colors ${
+              activeTab === "aco-shipments" ? "bg-purple-50 text-purple-600 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <span className="text-xl leading-none">🐜</span>
+            <span className="text-xs md:text-sm">ACO Pipeline</span>
           </button>
         </div>
       </nav>
@@ -312,12 +442,16 @@ export default function SellerDashboardPage() {
               {activeTab === "profile" && "Store Settings"}
               {activeTab === "add-product" && "Add New Product"}
               {activeTab === "orders" && "Order Management"}
+              {activeTab === "stock-orders" && "Upazilla Stock Orders"}
+              {activeTab === "aco-shipments" && "ACO Pipeline"}
             </h1>
             <p className="text-gray-600 mt-1">
               {activeTab === "inventory" && "View and manage your store's products."}
               {activeTab === "profile" && "Update your store's public profile."}
               {activeTab === "add-product" && "Search existing catalog or list a new item."}
               {activeTab === "orders" && "View and fulfill customer orders."}
+              {activeTab === "stock-orders" && "Manage wholesale stock requests from Upazilla Resellers."}
+              {activeTab === "aco-shipments" && "View Phase 1 Automated Routing Shipments."}
             </p>
           </div>
           <Link href="/" className="text-sm text-orange-600 hover:underline font-medium">
@@ -354,6 +488,8 @@ export default function SellerDashboardPage() {
           {activeTab === "profile" && <ProfileSection />}
           {activeTab === "add-product" && renderAddProductFlow()}
           {activeTab === "orders" && <OrdersTab />}
+          {activeTab === "stock-orders" && <StockOrdersPanel />}
+          {activeTab === "aco-shipments" && <AcoShipmentsPanel />}
         </div>
       </main>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+
 
 export default function InventoryTable() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -20,7 +21,7 @@ export default function InventoryTable() {
           setError(null);
         }
       } catch (err: any) {
-        if (isMounted) setError(err.message || "An error occurred");
+        if (isMounted) setError((err instanceof Error ? err.message : String(err)) || "An error occurred");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -44,7 +45,7 @@ export default function InventoryTable() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {["Product Name", "Brand", "Category", "Seller Store", "Seller Location", "Assigned Qty", "Seller Price", "Seller Stock Remaining"].map((h) => (
+                {["Product Name", "Brand", "Category", "Seller Store", "Seller Location", "Assigned Qty", "Routing Status", "Seller Price", "Seller Stock Remaining"].map((h) => (
                   <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -52,7 +53,7 @@ export default function InventoryTable() {
             <tbody className="bg-white divide-y divide-gray-200">
               {[1, 2, 3].map((row) => (
                 <tr key={row} className="animate-pulse">
-                  {[...Array(8)].map((_, col) => (
+                  {[...Array(9)].map((_, col) => (
                     <td key={col} className="px-6 py-4 whitespace-nowrap">
                       <div className="h-4 bg-gray-200 rounded w-full"></div>
                     </td>
@@ -93,92 +94,100 @@ export default function InventoryTable() {
     );
   }
 
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller Store</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Qty</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller Price</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller Stock Remaining</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {inventory.map((item) => {
-              const sp = item.sellerProduct || {};
-              const gp = sp.globalProduct || {};
-              const seller = sp.seller || {};
+  const Row = ({ index, style }: { index: number, style: React.CSSProperties }) => {
+    const item = inventory[index];
+    const sp = item.sellerProduct || {};
+    const gp = sp.globalProduct || {};
+    const seller = sp.seller || {};
 
-              const productName = item.customName || gp.name || sp.customName || "Unknown Product";
-              const brand = gp.brand || "—";
-              const category = gp.category || "—";
-              const storeName = seller.storeName || "Upazilla Reseller";
-              const sellerLocation = seller.city && seller.upazilla ? `${seller.city} / ${seller.upazilla}` : "—";
-              
-              return (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <div className="flex items-center gap-3">
-                      {gp.imageUrl ? (
-                        <img src={gp.imageUrl} alt={productName} className="h-10 w-10 rounded-md object-cover border border-gray-200 bg-gray-50" />
-                      ) : (
-                        <div className="h-10 w-10 rounded-md border border-gray-200 bg-gray-100 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        </div>
-                      )}
-                      {productName}
-                    </div>
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${brand === "—" ? "text-gray-400" : "text-gray-600"}`}>
-                    {brand}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {category}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    {storeName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {sellerLocation}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {item.quantity === 0 ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        No Stock
-                      </span>
-                    ) : item.quantity <= 3 ? (
-                      <span className="text-orange-600">{item.quantity}</span>
-                    ) : (
-                      <span className="text-green-600">{item.quantity}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                    {sp.price ? formatPrice(sp.price) : "N/A"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {sp.stock === undefined ? (
-                      <span className="text-gray-400">N/A</span>
-                    ) : sp.stock === 0 ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Out of Stock
-                      </span>
-                    ) : sp.stock <= 5 ? (
-                      <span className="text-orange-600">{sp.stock} left</span>
-                    ) : (
-                      <span className="text-gray-600">{sp.stock}</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    const productName = item.customName || gp.name || sp.customName || "Unknown Product";
+    const brand = gp.brand || "—";
+    const category = gp.category || "—";
+    const storeName = seller.storeName || "Upazilla Reseller";
+    const sellerLocation = seller.city && seller.upazilla ? `${seller.city} / ${seller.upazilla}` : "—";
+    
+    return (
+      <div style={style} className="flex border-b border-gray-200 hover:bg-gray-50 transition-colors items-center bg-white px-6">
+        <div className="w-1/4 pr-4 flex flex-col gap-1.5 justify-center py-2">
+          <div className="flex items-center gap-3">
+            {gp.imageUrl ? (
+              <img src={gp.imageUrl} alt={productName} className="h-8 w-8 rounded-md object-cover border border-gray-200 bg-gray-50 flex-shrink-0" />
+            ) : (
+              <div className="h-8 w-8 rounded-md border border-gray-200 bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+            )}
+            <span className="text-sm font-medium text-gray-900 truncate">{productName}</span>
+          </div>
+          <div className="flex items-center">
+            {item.customName ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-200">
+                📦 Via Supply Chain
+              </span>
+            ) : item.sellerProductId ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                🏪 Direct Stock
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="w-1/12 pr-4 text-sm text-gray-600 truncate">{brand}</div>
+        <div className="w-1/12 pr-4 text-sm text-gray-600 truncate">{category}</div>
+        <div className="w-1/6 pr-4 text-sm text-gray-900 font-medium truncate">{storeName}</div>
+        <div className="w-1/6 pr-4 text-sm text-gray-600 truncate">{sellerLocation}</div>
+        <div className="w-1/12 pr-4 text-sm font-medium">
+          {item.quantity === 0 ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">No Stock</span>
+          ) : item.quantity <= 3 ? (
+            <span className="text-orange-600">{item.quantity}</span>
+          ) : (
+            <span className="text-green-600">{item.quantity}</span>
+          )}
+        </div>
+        <div className="w-1/6 pr-4 text-sm">
+          {item.isReserved ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-800">Reserved for demand</span>
+          ) : item.surplusQuantity > 0 ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">Sent to district</span>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-800 border border-gray-200">Pending routing</span>
+          )}
+        </div>
+        <div className="w-1/12 pr-4 text-sm text-gray-900 font-semibold truncate">{sp.price ? formatPrice(sp.price) : "N/A"}</div>
+        <div className="w-1/12 text-sm font-medium">
+          {sp.stock === undefined ? (
+            <span className="text-gray-400">N/A</span>
+          ) : sp.stock === 0 ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-800">Out</span>
+          ) : sp.stock <= 5 ? (
+            <span className="text-orange-600">{sp.stock}</span>
+          ) : (
+            <span className="text-gray-600">{sp.stock}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[600px]">
+      <div className="flex bg-gray-50 border-b border-gray-200 px-6 py-3">
+        <div className="w-1/4 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</div>
+        <div className="w-1/12 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</div>
+        <div className="w-1/12 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</div>
+        <div className="w-1/6 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Seller Store</div>
+        <div className="w-1/6 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</div>
+        <div className="w-1/12 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</div>
+        <div className="w-1/6 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Routing</div>
+        <div className="w-1/12 pr-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</div>
+        <div className="w-1/12 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rem. Stock</div>
+      </div>
+      <div className="flex-1 w-full relative overflow-y-auto">
+        {inventory.map((item, index) => (
+          <div key={item.id || index} style={{ height: 72 }}>
+            <Row index={index} style={{}} />
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -19,6 +19,11 @@ export default function ProductSearch({
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  // Map of `globalProduct.id` -> { id (sellerProduct), stock, price }
+  // for products the current seller already stocks. Filled in by
+  // /api/products/search?type=seller so the UI can show a badge and
+  // prefill the form for the "update" path.
+  const [inInventory, setInInventory] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -33,7 +38,11 @@ export default function ProductSearch({
 
     if (debouncedQuery.length >= 2) {
       setIsLoading(true);
-      fetch(`/api/products/search?q=${encodeURIComponent(debouncedQuery)}`, { signal: controller.signal })
+      // `type=seller` switches /api/products/search into "global product" mode:
+      // it returns raw `globalProduct` rows (with `id` = globalProduct.id)
+      // so the seller dashboard can POST that id as `globalProductId` without
+      // tripping the seller_products_globalProductId_fkey FK.
+      fetch(`/api/products/search?q=${encodeURIComponent(debouncedQuery)}&type=seller`, { signal: controller.signal })
         .then((res) => {
           if (!res.ok) throw new Error("Search failed");
           return res.json();
@@ -41,6 +50,7 @@ export default function ProductSearch({
         .then((data) => {
           if (isMounted) {
             setResults(data.products || []);
+            setInInventory(data.inInventory || {});
             setIsOpen(true);
             setFocusedIndex(-1);
           }
@@ -48,6 +58,7 @@ export default function ProductSearch({
         .catch((err) => {
           if (err.name !== "AbortError" && isMounted) {
             setResults([]);
+            setInInventory({});
           }
         })
         .finally(() => {
@@ -55,6 +66,7 @@ export default function ProductSearch({
         });
     } else {
       setResults([]);
+      setInInventory({});
       setIsOpen(false);
     }
 
@@ -99,7 +111,12 @@ export default function ProductSearch({
     setSelectedProduct(product);
     setIsOpen(false);
     setQuery("");
-    onProductSelected(product);
+    // Attach the existing-inventory info (if any) so the parent can
+    // prefill the form and pick between POST (new) and PATCH (update).
+    onProductSelected({
+      ...product,
+      existing: inInventory[product.id] || null,
+    });
   };
 
   const handleCustomSelect = () => {
@@ -114,6 +131,7 @@ export default function ProductSearch({
   };
 
   if (selectedProduct) {
+    const owned = selectedProduct.existing;
     return (
       <div className="border rounded-md p-4 bg-white shadow-sm flex gap-4 items-start relative">
         {selectedProduct.imageUrl ? (
@@ -128,11 +146,25 @@ export default function ProductSearch({
           </div>
         )}
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">{selectedProduct.name}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-gray-900">{selectedProduct.name}</h3>
+            {owned && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                ✓ In your inventory
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 mb-1">
             {selectedProduct.brand ? `${selectedProduct.brand} • ` : ""}
             {selectedProduct.category}
           </p>
+          {owned && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+              You already sell this product. Submitting new stock/price will
+              <strong> update</strong> the existing entry (currently
+              {" "}stock {owned.stock} • ৳{owned.price}).
+            </p>
+          )}
           {selectedProduct.description && (
             <p className="text-sm text-gray-700 line-clamp-2">
               {selectedProduct.description.substring(0, 100)}
@@ -188,30 +220,50 @@ export default function ProductSearch({
                 No matches found — <span className="text-blue-600 font-medium">Add as Custom Product</span>
               </li>
             )}
-            {results.map((item, index) => (
-              <li
-                key={item.id}
-                className={`px-4 py-2 cursor-pointer flex gap-3 items-center ${
-                  focusedIndex === index ? "bg-orange-50" : "hover:bg-gray-50"
-                }`}
-                onClick={() => handleSelect(item)}
-              >
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt="" className="w-10 h-10 object-cover rounded bg-gray-100" />
-                ) : (
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">
-                    No img
+            {results.map((item, index) => {
+              const owned = inInventory[item.id];
+              return (
+                <li
+                  key={item.id}
+                  className={`px-4 py-2 cursor-pointer flex gap-3 items-center ${
+                    focusedIndex === index ? "bg-orange-50" : "hover:bg-gray-50"
+                  }`}
+                  onClick={() => handleSelect(item)}
+                >
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt="" className="w-10 h-10 object-cover rounded bg-gray-100" />
+                  ) : (
+                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">
+                      No img
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900 text-sm truncate">
+                        {item.name}
+                      </p>
+                      {owned && (
+                        <span
+                          title="This product is already in your inventory — submitting will update its stock and price."
+                          className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800 border border-green-200"
+                        >
+                          ✓ In your inventory
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {item.brand ? `${item.brand} • ` : ""}
+                      {item.category}
+                      {owned && (
+                        <>
+                          {" "}• stock {owned.stock} • ৳{owned.price}
+                        </>
+                      )}
+                    </p>
                   </div>
-                )}
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{item.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {item.brand ? `${item.brand} • ` : ""}
-                    {item.category}
-                  </p>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
             
             {/* Always show Add as Custom Product at the end if we have some results or if it's the only option */}
             {results.length > 0 && (

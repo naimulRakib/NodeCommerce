@@ -13,9 +13,19 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { localResellerId, stockItemId, quantity } = body;
 
+    if (!localResellerId || typeof localResellerId !== "string" || !localResellerId.trim()) {
+      return NextResponse.json({ error: "localResellerId is required" }, { status: 400 });
+    }
+    if (!stockItemId || typeof stockItemId !== "string" || !stockItemId.trim()) {
+      return NextResponse.json({ error: "stockItemId is required" }, { status: 400 });
+    }
+    if (localResellerId === user.id) {
+      return NextResponse.json({ error: "Cannot transfer to yourself" }, { status: 400 });
+    }
+
     const qty = parseInt(quantity, 10);
-    if (isNaN(qty) || qty < 1) {
-      return NextResponse.json({ error: "Quantity must be at least 1" }, { status: 400 });
+    if (isNaN(qty) || qty < 1 || qty > 2147483647) {
+      return NextResponse.json({ error: "Quantity must be a valid positive number" }, { status: 400 });
     }
 
     // Run within a transaction to ensure atomic deduction and transfer creation
@@ -76,8 +86,8 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Failed to create stock transfer:", error);
     // Determine if it's our thrown error or something else
-    const status = ["Upazilla Reseller profile not found", "Local Reseller not found", "Local Reseller is not in your upazilla", "You do not own this stock item"].some(msg => error.message.includes(msg)) || error.message.includes("Insufficient stock") ? 400 : 500;
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status });
+    const status = ["Upazilla Reseller profile not found", "Local Reseller not found", "Local Reseller is not in your upazilla", "You do not own this stock item"].some(msg => (error instanceof Error ? error.message : String(error)).includes(msg)) || (error instanceof Error ? error.message : String(error)).includes("Insufficient stock") ? 400 : 500;
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status });
   }
 }
 
@@ -90,6 +100,7 @@ export async function GET(req: Request) {
 
 
     const transfers = await prisma.stockTransfer.findMany({
+      take: 200,
       where: {
         upazillaResellerId: user.id
       },
@@ -109,6 +120,6 @@ export async function GET(req: Request) {
     return NextResponse.json(transfers);
   } catch (error: any) {
     console.error("Failed to fetch transfer history:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) || "Internal server error" }, { status: 500 });
   }
 }

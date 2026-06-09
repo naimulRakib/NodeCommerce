@@ -4,7 +4,7 @@ import { requireAuth, requireRole } from "@/lib/auth-utils";
 
 export const dynamic = "force-dynamic";
 
-const VALID_TRANSITIONS: any = {
+const VALID_TRANSITIONS: unknown = {
     pending: ["confirmed", "cancelled"],
     confirmed: ["processing", "cancelled"],
     processing: ["shipped"],
@@ -69,6 +69,6 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
         return NextResponse.json({ order: updated });
     } catch (e: any) {
         console.error("Order PATCH error:", e);
-        return NextResponse.json({ error: e.message || "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: (e instanceof Error ? e.message : String(e)) || "Internal Server Error" }, { status: 500 });
     }
 }
