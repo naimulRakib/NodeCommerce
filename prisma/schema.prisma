@@ -788,6 +788,24 @@ model ACOShipment {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  // UiPath Integration Fields
+  uipathJobId      String?
+  riskScore        Float?
+  overallRisk      String?
+  totalWeightKg    Float?
+  confirmedFreight Float?
+  transportAgency  String?
+  driverName       String?
+  driverPhone      String?
+  licensePlate     String?
+  
+  // Risk and Dispatch Fields
+  historicalDelayRate Float?
+  seasonalRiskFlag    String?
+  negotiatedMaxPrice  Float?
+  currentWeather      String?
+  overBudgetFlag      Boolean @default(false)
+
   lineItems ACOShipmentItem[]
 
   @@index([jobId])
@@ -991,4 +1009,102 @@ model RealtimeAction {
   @@index([userRole])
   @@index([isRead])
   @@index([isActioned])
+}
+
+// ══════════════════════════════════════════════════════
+// TEST RUNNER AGENT MODELS (STAGING/TEST ONLY)
+// ══════════════════════════════════════════════════════
+
+model TestRun {
+  id          String          @id @default(cuid())
+  environment String
+  status      String          @default("running")
+  totalTests  Int             @default(0)
+  passed      Int             @default(0)
+  failed      Int             @default(0)
+  skipped     Int             @default(0)
+  timedOut    Int             @default(0)
+  durationMs  Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  results     TestRunResult[]
+
+  @@map("test_runs")
+}
+
+model TestRunResult {
+  id           String   @id @default(cuid())
+  testRunId    String
+  testRun      TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testCaseId   String
+  name         String
+  status       String   // PASS, FAIL, TIMEOUT, SKIPPED
+  durationMs   Int      @default(0)
+  errorMessage String?
+  runAt        DateTime @default(now())
+
+  @@index([testRunId])
+  @@index([testCaseId])
+  @@map("test_run_results")
+}
+
+// Mock Interception Tables
+
+model MockUiPathJob {
+  id             String   @id @default(cuid())
+  shipmentId     String
+  inputArguments Json
+  status         String   @default("Running")
+  createdAt      DateTime @default(now())
+}
+
+model MockActionCenterTask {
+  id           String   @id @default(cuid())
+  assignedTo   String
+  type         String?
+  title        String
+  priority     String   @default("High")
+  deadline     DateTime?
+  shipmentId   String?
+  status       String   @default("Pending")
+  createdAt    DateTime @default(now())
+}
+
+model MockNotificationLog {
+  id           String   @id @default(cuid())
+  type         String   // "whatsapp", "sms", "email"
+  recipient    String
+  subject      String?
+  body         String
+  shipmentId   String?
+  createdAt    DateTime @default(now())
+}
+
+model MockThirdPartyAgencyLog {
+  id           String   @id @default(cuid())
+  agencyName   String
+  shipmentId   String
+  status       String   // "visited", "confirmed", "rejected"
+  quoteAmount  Float?
+  createdAt    DateTime @default(now())
+}
+
+model MockDocument {
+  id           String   @id @default(cuid())
+  shipmentId   String
+  filename     String
+  content      String   // Simulated PDF text
+  createdAt    DateTime @default(now())
+}
+
+model ProvaRecommendation {
+  id                    String   @id @default(cuid())
+  districtId            String
+  productId             String
+  dailyRate             Float
+  baseDaysRemaining     Float
+  seasonalMultiplier    Float
+  adjustedDaysRemaining Float
+  status                String   // "WARNING", "WATCH", "OK"
+  createdAt             DateTime @default(now())
 }

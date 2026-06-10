@@ -23,7 +23,7 @@ const TRUCK_COLORS = [
 const getTruckIcon = (color: string) => {
   return L.divIcon({
     className: "custom-truck-icon",
-    html: `<div style="font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); display: flex; align-items: center; justify-content: center; background: white; border: 2px solid ${color}; border-radius: 50%; width: 32px; height: 32px;">🚚</div>`,
+    html: `<div style="font-size: 20px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); display: flex; align-items: center; justify-content: center; background: white; border: 2px solid ${color}; border-radius: 50%; width: 32px; height: 32px; transition: all 1s ease-in-out;">🚚</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
     popupAnchor: [0, -16],
@@ -45,13 +45,16 @@ export default function TruckRouteMap({ trucks }: TruckRouteMapProps) {
 
   return (
     <>
-      {animatedTrucks.map((truck, tIdx) => {
+      {(animatedTrucks || []).slice(0, 100).map((truck, tIdx) => {
         if (!truck.stops || truck.stops.length === 0) return null;
         
         const color = TRUCK_COLORS[tIdx % TRUCK_COLORS.length];
         
+        const validStops = truck.stops.filter((s: any) => s?.lat != null && s?.lng != null);
+        if (validStops.length === 0) return null;
+        
         // Extract coordinates for Polyline
-        const positions: [number, number][] = truck.stops.map((s: any) => [s.lat, s.lng]);
+        const positions: [number, number][] = validStops.map((s: any) => [s.lat, s.lng]);
 
         // Find current position for the truck marker
         let currentPos: [number, number] = positions[0];
@@ -71,7 +74,7 @@ export default function TruckRouteMap({ trucks }: TruckRouteMapProps) {
             />
 
             {/* The Stops */}
-            {truck.stops.map((stop: any, sIdx: number) => {
+            {validStops.map((stop: any, sIdx: number) => {
               const isPast = sIdx < truck.currentStopIndex;
               
               // Node shapes: Pickup = square-ish, Delivery = circle
@@ -92,7 +95,7 @@ export default function TruckRouteMap({ trucks }: TruckRouteMapProps) {
                       <div className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
                         {stop.stopType.replace("_", " ")}
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base mb-2">{stop.entityName}</h3>
+                      <h3 className="font-bold text-gray-900 text-base mb-2 line-clamp-1 truncate" title={stop.entityName || "Unknown Node"}>{stop.entityName || "Unknown Node"}</h3>
                       <div className="bg-gray-50 p-2 rounded-lg text-sm border border-gray-100">
                         {stop.items.map((i: any) => (
                           <div key={i.id} className="flex justify-between border-b border-gray-200 last:border-0 py-1">
@@ -120,11 +123,28 @@ export default function TruckRouteMap({ trucks }: TruckRouteMapProps) {
               zIndexOffset={1000}
             >
               <Popup>
-                <div className="font-bold text-center">
+                <div className="font-bold text-center min-w-[120px]">
                   Truck {truck.truckCode}<br/>
-                  <span className="text-xs font-normal text-gray-500">
-                    Status: {truck.status}
-                  </span>
+                  <div className="text-xs font-normal text-gray-600 mt-2 text-left">
+                    <div className="flex justify-between mb-1">
+                      <span>Status:</span>
+                      <span className="uppercase font-semibold">{truck.status}</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span>Progress:</span>
+                      <span>Stop {Math.max(1, truck.currentStopIndex)} / {truck.stops.length}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                      <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${(Math.max(1, truck.currentStopIndex) / truck.stops.length) * 100}%` }}></div>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span>Loaded:</span>
+                      <span>{truck.loadedUnits} / {truck.capacityUnits}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${(truck.loadedUnits / truck.capacityUnits) * 100}%` }}></div>
+                    </div>
+                  </div>
                 </div>
               </Popup>
             </Marker>

@@ -134,16 +134,63 @@ export async function GET(request: Request) {
         seller: sp.seller
     }));
 
-    // Track behaviour asynchronously
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const buyerId = user?.id || null;
+    let buyerLat = 23.8;
+    let buyerLng = 90.4;
+
+    if (buyerId) {
+        const bp = await prisma.buyerProfile.findUnique({ where: { id: buyerId } });
+        if (bp?.lat && bp?.lng) {
+            buyerLat = bp.lat;
+            buyerLng = bp.lng;
+        }
+    }
+
+    // Find nearest Local Reseller stock for each product
+    function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+        const R = 6371; // km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    const productsWithNearest = await Promise.all(formattedProducts.map(async (p: any) => {
+        const localStocks = await prisma.resellerStockItem.findMany({
+            where: { sellerProductId: p.id, quantity: { gt: 0 } },
+            include: { reseller: true }
+        });
+
+        let nearest = null;
+        let minDistance = Infinity;
+
+        for (const ls of localStocks) {
+            const lat = ls.reseller.lat || 23.8;
+            const lng = ls.reseller.lng || 90.4;
+            const dist = getDistance(buyerLat, buyerLng, lat, lng);
+            if (dist < minDistance) {
+                minDistance = dist;
+                nearest = {
+                    name: ls.reseller.username,
+                    distanceKm: dist,
+                    stock: ls.quantity
+                };
+            }
+        }
+
+        return { ...p, nearestReseller: nearest };
+    }));
     
     // Fire and forget
     trackBehaviour(buyerId, "search", { query: q, category, resultsCount: total });
 
     return NextResponse.json({
-        products: formattedProducts,
+        products: productsWithNearest,
         total,
         page,
         totalPages: Math.ceil(total / pageSize)

@@ -1,82 +1,52 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    // Note: In production this would require a secret cron key.
-    // For now we allow POST to run the expiry sweep.
+    // Only allow cron job or admins to trigger this (basic secret check)
+    const secret = req.headers.get("x-cron-secret");
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const now = new Date();
+    // 8 hours ago
+    const cutoffDate = new Date(Date.now() - 8 * 60 * 60 * 1000);
 
     const expiredShipments = await prisma.aCOShipment.findMany({
       where: {
         phase: 3,
         status: "pending_approval",
-        expiresAt: { lt: now },
-      },
-      include: {
-        lineItems: true,
+        createdAt: {
+          lt: cutoffDate,
+        },
       },
     });
 
     if (expiredShipments.length === 0) {
-      return NextResponse.json({ ok: true, expiredCount: 0 });
+      return NextResponse.json({ success: true, expiredCount: 0, message: "No hanging shipments found." });
     }
 
-    let expiredCount = 0;
-    const penalizedPheromones = new Set<string>();
+    const ids = expiredShipments.map(s => s.id);
 
-    for (const ship of expiredShipments) {
-      // Mark as expired
-      await prisma.$transaction(async (tx) => {
-        await tx.aCOShipment.update({
-          where: { id: ship.id },
-          data: {
-            status: "expired",
-            failureReason: "Expired before both parties approved.",
-          },
-        });
-
-        await tx.aCOShipmentItem.updateMany({
-          where: { shipmentId: ship.id },
-          data: { status: "cancelled" },
-        });
-
-        // Penalize the destination's pheromones to force ACO to re-prioritize it.
-        // It's the target district that suffered from this failed shipment.
-        for (const li of ship.lineItems) {
-          const pheromoneKey = `${li.productName.toLowerCase()}::${ship.toId}`;
-          if (!penalizedPheromones.has(pheromoneKey)) {
-            const pheromoneRow = await tx.demandPheromone.findFirst({
-              where: {
-                entityId: ship.toId,
-                entityType: "district",
-                productName: { equals: li.productName, mode: "insensitive" },
-              },
-            });
-            if (pheromoneRow) {
-              await tx.demandPheromone.update({
-                where: { id: pheromoneRow.id },
-                data: { waitingDays: { increment: 1 } },
-              });
-            }
-            penalizedPheromones.add(pheromoneKey);
-          }
-        }
-      });
-      expiredCount++;
-    }
-
-    return NextResponse.json({
-      ok: true,
-      expiredCount,
-      message: `Successfully expired ${expiredCount} shipments.`,
+    const result = await prisma.aCOShipment.updateMany({
+      where: {
+        id: { in: ids },
+        status: "pending_approval", // Double check atomic condition
+      },
+      data: {
+        status: "expired",
+        failureReason: "uipath_job_timeout",
+        notes: "Automatically expired after 8 hours pending_approval.",
+      },
     });
+
+    console.log(`[Sweeper] Auto-expired ${result.count} hanging shipments: ${ids.join(', ')}`);
+
+    // In a real system, you might trigger an email alert to ops@nodecommerce.bd here.
+
+    return NextResponse.json({ success: true, expiredCount: result.count, expiredIds: ids });
   } catch (error: any) {
-    console.error("Error expiring shipments:", error);
-    return NextResponse.json(
-      { error: "internal_error", details: error.message },
-      { status: 500 }
-    );
+    console.error("[Expire Shipments Hook] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

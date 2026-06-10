@@ -1,0 +1,1098 @@
+.container {
+  min-height: 100vh;
+  background-color: #F5F6F8;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  padding-bottom: 64px;
+}
+
+.authBypassBanner {
+  background-color: #1B1F3B;
+  color: #FFF;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.header {
+  background-color: #1B1F3B;
+  color: white;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.userDistrict {
+  font-size: 11px;
+  color: #A0A5C0;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #0066FF;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tabBar {
+  background-color: white;
+  border-bottom: 1px solid #E4E7ED;
+  padding: 0 24px;
+  display: flex;
+  gap: 32px;
+}
+
+.tab {
+  padding: 16px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.activeTab {
+  color: #0066FF;
+  border-bottom-color: #0066FF;
+}
+
+.main {
+  padding: 32px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* LIST VIEW */
+.taskList {
+  display: grid;
+  gap: 16px;
+}
+
+.taskCard {
+  background: white;
+  border-radius: 6px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid #E4E7ED;
+  transition: box-shadow 0.2s;
+  position: relative;
+  /* Edge Case 48: Entrance Animation */
+  opacity: 0;
+  animation: fadeUpIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeUpIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taskCard {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.taskCard:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.newBadge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #0066FF;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 12px;
+  animation: fadeOut 30s forwards;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; display: none; }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.priorityBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.critical {
+  background-color: #FFEAEA;
+  color: #D32F2F;
+}
+
+.high {
+  background-color: #FFF3E0;
+  color: #F57C00;
+}
+
+.normal {
+  background-color: #E3F2FD;
+  color: #1976D2;
+}
+
+.taskTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1B1F3B;
+  margin: 0 0 8px 0;
+}
+
+.assignee {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.pillsRow {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: #F5F6F8;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #E4E7ED;
+}
+
+.deadlineRed {
+  color: #D32F2F;
+  background: #FFEAEA;
+  border-color: #FFCDD2;
+}
+
+.deadlineOrange {
+  color: #F57C00;
+  background: #FFF3E0;
+  border-color: #FFE0B2;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #E4E7ED;
+  padding-top: 16px;
+}
+
+.openTaskBtn {
+  background-color: #0066FF;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.openTaskBtn:hover {
+  background-color: #0052CC;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+  color: #666;
+}
+
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  color: #4CAF50;
+  margin-bottom: 16px;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.emptySubtext {
+  font-size: 14px;
+  color: #888;
+}
+
+/* DETAIL VIEW */
+.taskDetailContainer {
+  /* Edge Case 49: CSS Slide in */
+  transform: translateX(20px);
+  opacity: 0;
+  animation: slideInRight 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .taskDetailContainer {
+    animation: none;
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.detailHeaderWrapper {
+  margin-bottom: 24px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: #0066FF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 24px;
+}
+
+.detailTitle {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1B1F3B;
+  margin: 0 0 8px 0;
+}
+
+.taskId {
+  font-family: monospace;
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.statusChips {
+  display: flex;
+  gap: 12px;
+}
+
+.chip {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  background: white;
+}
+
+/* Collapsible Sections */
+.section {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border: 1px solid #E4E7ED;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.sectionHeader {
+  padding: 16px 20px;
+  background: #FAFAFB;
+  font-weight: 500;
+  font-size: 15px;
+  color: #1B1F3B;
+  border-bottom: 1px solid #E4E7ED;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionBody {
+  padding: 20px;
+}
+
+.dataGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  row-gap: 12px;
+}
+
+.dataRow {
+  display: contents;
+}
+
+.dataLabel {
+  color: #666;
+  font-size: 13px;
+}
+
+.dataValue {
+  color: #333;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: right;
+}
+
+/* Edge Case 44: District Name Truncation */
+.truncatedText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+/* Edge Case 43: Expandable Product List */
+.expandableList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hiddenProduct {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.hiddenProduct.expanded {
+  max-height: 24px;
+  opacity: 1;
+}
+
+.toggleLink {
+  color: #0066FF;
+  font-size: 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Risk Intelligence */
+.riskBarContainer {
+  margin-bottom: 24px;
+}
+
+.riskLevelText {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.riskSegments {
+  display: flex;
+  gap: 4px;
+  height: 8px;
+}
+
+.riskSegment {
+  flex: 1;
+  background: #E4E7ED;
+  border-radius: 2px;
+}
+
+.riskSegment.filledLow { background: #4CAF50; }
+.riskSegment.filledMedium { background: #FFC107; }
+.riskSegment.filledHigh { background: #F57C00; }
+.riskSegment.filledCritical { background: #D32F2F; }
+
+.animateFill {
+  animation: fillSegment 0.6s ease-in forwards;
+  transform-origin: left;
+}
+
+@keyframes fillSegment {
+  0% { transform: scaleX(0); opacity: 0; }
+  100% { transform: scaleX(1); opacity: 1; }
+}
+
+.riskFactorsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.riskFactorRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.riskFactorName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.dot.low { background: #4CAF50; }
+.dot.medium { background: #FFC107; }
+.dot.high { background: #F57C00; }
+
+.riskFactorValue {
+  color: #666;
+  font-weight: 500;
+}
+
+.aiRecommendation {
+  background: #E3F2FD;
+  border-left: 4px solid #1976D2;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #1976D2;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Transport Details */
+.driverCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.driverInitials {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ECEFF1;
+  color: #546E7A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.driverInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.driverName {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.driverPhone {
+  color: #0066FF;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.plateBadge {
+  background: #F5F6F8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  border: 1px solid #E4E7ED;
+  margin-left: 8px;
+}
+
+/* Action Section */
+.actionSection {
+  background: #F8F9FB; /* slightly different tint */
+  position: relative;
+}
+
+.blockingLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 10;
+  cursor: not-allowed;
+}
+
+.optionCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.optionCard {
+  background: white;
+  border: 1px solid #E4E7ED;
+  border-left: 4px solid #ccc;
+  border-radius: 6px;
+  padding: 16px;
+  cursor: pointer;
+  /* Edge Case 50: Crossfade transition */
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.optionCard:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.optionCard.selected {
+  border-color: #0066FF;
+  box-shadow: 0 0 0 1px #0066FF;
+}
+
+.optionCard.selectedApprove { border-left-color: #4CAF50; border-color: #4CAF50; }
+.optionCard.selectedReject { border-left-color: #D32F2F; border-color: #D32F2F; }
+.optionCard.selectedRequest { border-left-color: #FF9800; border-color: #FF9800; }
+
+.optionCard.borderApprove { border-left-color: #4CAF50; }
+.optionCard.borderReject { border-left-color: #D32F2F; }
+.optionCard.borderRequest { border-left-color: #FF9800; }
+
+.optionIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.iconApprove { background: #4CAF50; }
+.iconReject { background: #D32F2F; }
+.iconRequest { background: #FF9800; }
+
+.optionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.optionSubtext {
+  font-size: 12px;
+  color: #666;
+}
+
+.reasonArea {
+  margin-bottom: 24px;
+  animation: slideDown 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 200px; }
+}
+
+.textareaLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.charCounter {
+  font-weight: 400;
+  color: #666;
+}
+
+.counterOrange { color: #F57C00; }
+.counterRed { color: #D32F2F; }
+
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.2s;
+  /* Edge Case 51: Fixed height to prevent resize during loading */
+  min-height: 54px;
+}
+
+.submitBtn:disabled {
+  background: #ccc !important;
+  cursor: not-allowed;
+}
+
+.submitBtnApprove { background: #4CAF50; }
+.submitBtnReject { background: #D32F2F; }
+.submitBtnRequest { background: #FF9800; }
+
+/* Edge Case 51: Spinner exactly 1s linear CSS */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Overlays */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.95);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  overflow-y: auto;
+}
+
+.successIcon {
+  width: 80px;
+  height: 80px;
+  color: #4CAF50;
+  margin-bottom: 24px;
+}
+
+/* Edge Case 23, 52: Stroke animation 1.2s GPU */
+.animatedCheckmark {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: dash 1.2s ease-out forwards;
+}
+
+@keyframes dash {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animatedCheckmark {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+.rejectIcon {
+  width: 80px;
+  height: 80px;
+  color: #D32F2F;
+  margin-bottom: 24px;
+}
+
+.overlayTitle {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1B1F3B;
+  margin-bottom: 12px;
+}
+
+.overlaySubtext {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+/* Edge Case 23: Timeline Feed */
+.timelineContainer {
+  animation: slideUpFade 0.6s ease-out 1.2s both; /* Starts after checkmark animation */
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.timelineLine {
+  width: 2px;
+  background: #E4E7ED;
+  position: relative;
+  margin-top: 6px;
+}
+
+.timelineDot {
+  width: 10px;
+  height: 10px;
+  background: #0066FF;
+  border-radius: 50%;
+  position: absolute;
+  left: -4px;
+  top: 0;
+  box-shadow: 0 0 0 4px #E3F2FD;
+}
+
+.timelineDot.active {
+  background: #4CAF50;
+  box-shadow: 0 0 0 4px #E8F5E9;
+}
+
+.timelineContent {
+  flex: 1;
+}
+
+.timelineTime {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.timelineText {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Demo Panel */
+.demoPanel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  border: 1px solid #E4E7ED;
+  width: 300px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.demoBadge {
+  background: #9C27B0;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  text-align: center;
+}
+
+.demoContent {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.demoLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+}
+
+.demoSelect {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.demoToggle {
+  display: flex;
+  background: #F5F6F8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.demoToggleBtn {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.demoToggleBtn.active {
+  background: #0066FF;
+  color: white;
+}
+
+.demoBtn {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  background: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.demoBtn.primary {
+  background: #E3F2FD;
+  border-color: #90CAF9;
+  color: #1976D2;
+}
+
+.demoBtn:hover {
+  background: #F5F6F8;
+}
+
+.demoBtn.primary:hover {
+  background: #BBDEFB;
+}
+
+.copyInput {
+  flex: 1;
+  font-size: 11px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+}
+
+/* Edge Case 29: Quick Fill Highlight */
+.quickFillHighlight {
+  animation: quickFillPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes quickFillPop {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(76, 175, 80, 0.2); border-color: #4CAF50; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); border-color: #4CAF50; }
+}
+
+/* Edge Case 31: Floating Demo Reopen Button */
+.floatingDemoBtn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #9C27B0;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px dashed rgba(255,255,255,0.8);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.floatingDemoBtn::after {
+  content: "Dev Tools";
+  font-size: 10px;
+  background: rgba(0,0,0,0.3);
+  padding: 2px 6px;
+  border-radius: 12px;
+  margin-left: 4px;
+}
+
+/* Edge Case 36: Offline Indicator */
+.offlineIndicator {
+  background: #FFEAEA;
+  color: #D32F2F;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
+/* Edge Case 9: Critical Banner */
+.criticalBanner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: #D32F2F;
+  color: white;
+  text-align: center;
+  padding: 12px;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.criticalBorder {
+  border-left: 4px solid #D32F2F !important;
+}
+
+/* Edge Case 53: Target Banner */
+.targetApprovedBanner {
+  background-color: #E3F2FD;
+  border-left: 4px solid #1976D2;
+  color: #0D47A1;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.riskChangeBanner {
+  background-color: #FFF9C4;
+  color: #F57C00;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 4px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Fallbacks for older browsers */
+.taskListFallback {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+  }
+  
+  .tabBar {
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  .main {
+    padding: 16px;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .optionCards {
+    grid-template-columns: 1fr;
+  }
+
+  .submitBtn {
+    height: 56px;
+  }
+
+  .demoPanel, .floatingDemoBtn {
+    display: none;
+  }
+}

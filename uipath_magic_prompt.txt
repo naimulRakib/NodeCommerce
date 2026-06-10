@@ -1,0 +1,42 @@
+Create a comprehensive UiPath Agentic Workflow for Intelligent Logistics Orchestration. The workflow must be structured as a State Machine.
+
+### IN_ARGUMENTS (WebHook Payload Data):
+ShipmentId (String), TruckCode (String), ProductSummary (String), TotalQuantity (Int32), TotalWeightKg (Double), TotalVolumeCBM (Double), FromDistrict (String), ToDistrict (String), DistanceKm (Double), CombinedScore (Double), SourceEmail (String), TargetEmail (String), SourcePhone (String), TargetPhone (String), SourceDistrictId (String), TargetDistrictId (String), DriverName (String), DriverPhone (String), LicensePlate (String), TransportAgency (String), AgencyBookingRef (String), NegotiatedMaxPrice (Double), ConfirmedFreight (Double), ExpiresAt (String), RequiredByDate (String), CallbackUrl (String), SeasonalRiskFlag (String), HistoricalDelayRate (Double), CurrentWeather (String).
+
+### STATE 1: Risk Assessment (AI Logic)
+1. Initialize variables: OverallRisk (String), RiskScore (Int32).
+2. Calculate RiskScore using Multiple Assign:
+   - RouteRisk: If DistanceKm > 300 then 3 else if DistanceKm > 150 then 1 else 0
+   - WeightRisk: If TotalWeightKg > 5000 then 3 else if TotalWeightKg > 2000 then 1 else 0
+   - HistoryRisk: If HistoricalDelayRate > 0.3 then 3 else 0
+   - WeatherRisk: If CurrentWeather.ToLower.Contains("storm") or CurrentWeather.ToLower.Contains("flood") then 3 else 0
+   - Sum all risk variables into RiskScore.
+3. Determine OverallRisk: If RiskScore >= 10 then "CRITICAL", >= 6 then "HIGH", >= 3 then "MEDIUM", else "LOW".
+4. Execute an HTTP Request (POST) to endpoint: CallbackUrl + "/risk-assessment". Set Body format to JSON containing {shipmentId, riskScore, overallRisk}.
+
+### STATE 2: Smart Notification & Document Gen (Parallel Processing)
+Use a Parallel Activity with 2 branches:
+BRANCH A (Document Generation):
+1. Use Word Document Automation to generate a PDF "Intelligent Waybill" and "Transfer Certificate". Populate the documents with the IN_ARGUMENTS. Save files to a local temp path.
+BRANCH B (Action Center & Messaging):
+1. Use the "Create Form Task" activity to generate an Approval Form for the Source Reseller. The Form XML must display ShipmentId, Route (FromDistrict to ToDistrict), TotalWeightKg, ConfirmedFreight, and OverallRisk. Include a Radio Button for "Decision" (Approve/Reject). Assign to SourceEmail. Store TaskID in SourceTaskID.
+2. Use the "Create Form Task" activity for the Target Reseller. Assign to TargetEmail. Store TaskID in TargetTaskID.
+3. Use Send Email (SMTP/Exchange) to email SourceEmail and TargetEmail with the PDF attachments and a link to the Action Center.
+4. Use HTTP Request to trigger Twilio/WhatsApp API sending a notification to SourcePhone, TargetPhone, and DriverPhone containing the Shipment details.
+
+### STATE 3: Approval Escalation Engine
+1. Use a Parallel Activity to Wait for Form Tasks and Handle Escalation simultaneously.
+BRANCH A (Wait):
+1. Use "Wait for Form Task and Resume" for SourceTaskID and TargetTaskID.
+BRANCH B (Timers):
+1. Use "Delay" for 2 hours. Send Reminder WhatsApp.
+2. Use "Delay" for 4 hours. If OverallRisk = "HIGH" or "CRITICAL", Send Escalation Email to ops@nodecommerce.bd.
+
+### STATE 4: Final Callback (Decision Execution)
+1. Extract the "Decision" from the completed Form Tasks. 
+2. If both Source Decision = "Approve" and Target Decision = "Approve":
+   - HTTP Request (POST) to CallbackUrl + "/approval" with JSON body {"shipmentId": ShipmentId, "action": "approve"}.
+   - Send WhatsApp to DriverPhone: "✅ GO SIGNAL. Approved for dispatch."
+3. If any Decision = "Reject":
+   - HTTP Request (POST) to CallbackUrl + "/approval" with JSON body {"shipmentId": ShipmentId, "action": "reject"}.
+   - Send WhatsApp to DriverPhone: "❌ CANCELLED. Do not depart."

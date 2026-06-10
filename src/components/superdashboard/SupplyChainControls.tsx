@@ -101,7 +101,7 @@ export default function SupplyChainControls({ onReset }: SupplyChainControlsProp
       <div className="absolute top-4 right-[700px] z-[400]">
         <div className="flex items-center gap-2 bg-slate-900 border border-amber-500/50 text-amber-300 px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
           <span>⏳</span>
-          {action === "resetting" ? "Resetting supply chain…" : "Seeding demands…"}
+          {message || (action === "resetting" ? "Resetting supply chain…" : "Seeding demands…")}
         </div>
       </div>
     );
@@ -136,9 +136,77 @@ export default function SupplyChainControls({ onReset }: SupplyChainControlsProp
     );
   }
 
-  // ── Idle — two buttons side by side ──
+  async function handleAutoPilot() {
+    setAction("seeding");
+    setErrorMsg(null);
+    try {
+      // 1. Seed Demands
+      setMessage("Step 1: Seeding fake demands...");
+      const seedRes = await fetch("/api/supply-chain/seed-demands", {
+        method: "POST",
+        headers: { "X-Internal-Secret": "dev-secret", "Content-Type": "application/json" },
+        body: JSON.stringify({ minQty: 50, maxQty: 500 }),
+      });
+      if (!seedRes.ok) throw new Error("Seed failed");
+
+      // 2. Trigger ACO
+      setAction("resetting");
+      setMessage("Step 2: Running ACO Math Engine...");
+      const acoRes = await fetch("/api/supply-chain/trigger-aco", {
+        method: "POST",
+        headers: { "X-Internal-Secret": "dev-secret" }
+      });
+      if (!acoRes.ok) {
+        if (acoRes.status === 429) {
+          const errData = await acoRes.json().catch(() => ({}));
+          throw new Error(errData.message || "Rate limit exceeded. Please wait.");
+        }
+        throw new Error("ACO trigger failed");
+      }
+      
+      // 3. Auto-Drive Trucks and Auto-Approve Shipments
+      setMessage("Step 3: Auto-driving trucks & approving Phase 3...");
+      
+      let driving = true;
+      let cycles = 0;
+      while (driving && cycles < 15) { // max 15 cycles
+        cycles++;
+        const driveRes = await fetch("/api/supply-chain/magic-demo-drive", { method: "POST" });
+        const driveData = await driveRes.json();
+        
+        if (!driveRes.ok) throw new Error("Failed to drive trucks");
+        
+        onReset?.(); // refresh map state so user sees updates
+        
+        if (driveData.activeTrucksRemaining === 0 && driveData.shipmentsApproved === 0) {
+          // If no trucks are moving AND no shipments were approved in this tick, we might be done.
+          // Wait one more tick to be sure nothing else generates.
+          if (cycles > 3) driving = false; 
+        }
+        
+        await new Promise(r => setTimeout(r, 2000)); // wait 2 seconds between ticks
+      }
+
+      setMessage("Auto-Pilot Complete! Supply chain executed.");
+      setAction("done");
+      onReset?.();
+    } catch (e: any) {
+      setErrorMsg(e.message);
+      setAction("error");
+    }
+  }
+
+  // ── Idle — buttons ──
   return (
     <div className="absolute top-4 right-[700px] z-[400] flex items-center gap-2">
+      <button
+        onClick={handleAutoPilot}
+        className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-[0_0_15px_rgba(124,58,237,0.5)] transition-all duration-200 active:scale-95"
+        title="Run the entire demo automatically: Seed Demands, Run ACO, Approve Shipments, Drive Trucks"
+      >
+        <span>▶️</span> Magic Auto-Pilot Demo
+      </button>
+
       <button
         onClick={() => setAction("confirming-full")}
         className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-red-950 border border-slate-600 hover:border-red-500 text-slate-400 hover:text-red-300 px-3 py-2 rounded-full font-semibold text-xs shadow-lg transition-all duration-200 active:scale-95"

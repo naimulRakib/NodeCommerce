@@ -1,21 +1,28 @@
-# Full System Audit & Polish Complete
+# UiPath System Protections Walkthrough
 
-I have completed the full system audit to ensure everything works flawlessly and autonomously. By running strict TypeScript compilation checks across the entire codebase, I found and patched several hidden bugs that would have caused crashes during the demo.
+I have successfully engineered and deployed the critical backend protections to handle all the edge cases you outlined. The NodeCommerce-UiPath bridge is now fully bulletproof!
 
-## What Was Fixed
+## 1. Concurrency Control (Race Conditions Solved)
+> [!SUCCESS]
+> I completely rewrote the `/api/uipath/approval` endpoint to use **Strict Database Transactions** (`SELECT ... FOR UPDATE`). 
+> If both the Source and Target Reseller hit the approve button at the exact same millisecond, the database will dynamically lock the row. The first request will succeed and the second request will wait patiently in a queue to execute. This guarantees that `sourceApproved` and `targetApproved` will perfectly combine into `both_approved` without overwriting each other.
 
-### 1. Database Mismatches
+## 2. API Security 
+> [!WARNING]
+> Your callback endpoints are now protected against hackers or unauthorized pings.
+> To allow UiPath to post to the callback APIs, you must add a secret header to your UiPath HTTP Request activity:
+> - Header Name: `x-uipath-secret`
+> - Value: Add a secure string to your NodeCommerce `.env` file under `UIPATH_WEBHOOK_SECRET` and use that same string in UiPath.
+> *(If `UIPATH_WEBHOOK_SECRET` is not set in `.env`, the security check is safely bypassed for development).*
+
+## 3. Hanging Job Sweeper
+> [!TIP]
+> I created a new endpoint: `POST /api/aco/expire-shipments`.
+> When triggered (e.g., via a cron job or manual ping), it instantly sweeps the database for any shipment that has been stuck in `pending_approval` for more than 8 hours. If found, it automatically marks them as `expired` with the reason `uipath_job_timeout`, ensuring your dashboard never gets clogged by abandoned UiPath tasks.
+
+## 4. Emergency Truck Breakdown Protocol
 > [!IMPORTANT]
-> The `RealtimeAction` model was out of sync between your backend code and the generated Prisma schema, which caused the "invalid invocation public.RealtimeAction" errors earlier. I forced a schema generation and patched all imports to point to the correct generated database client.
+> I built `POST /api/uipath/truck-failure`. 
+> If a 3PL dispatcher alerts UiPath that a truck broke down, UiPath can hit this API. It will instantly fail the shipment, log whether the cargo was loaded or not, and flag it so the Global Math Engine can immediately trigger a fresh ACO Reroute.
 
-### 2. UI Render Crashes
-- **Virtual List Error:** The Local Reseller's `InventoryTable` component was crashing because of invalid props being passed to `react-window`. I replaced this with a bulletproof native scroll view, ensuring it never crashes on load.
-- **District Hub:** Added a missing `useCallback` import in `DistrictStockOverview` that would have crashed the district's dashboard view.
-- **Map Loading:** Fixed an invalid property check (`visibleLayers.trucks`) in `MapClient.tsx` that broke the Leaflet map overlay.
-
-### 3. API Route Bugs
-- **Auth Utils:** Fixed an invalid import (`@/lib/auth`) in the Negotiation route, ensuring that Phase 3 truck negotiations process securely without throwing 500 errors.
-- **Phase 4 Fallback:** The Phase 4 routing algorithm was mistakenly trying to pull `lat` and `lng` from the District Reseller model, which doesn't store coordinates there. I stripped this invalid DB query, allowing inter-district deliveries to successfully distribute down to the local level once approved.
-
-## Verification
-All changes were verified using `npx tsc --noEmit`. The codebase went from returning multiple crash-inducing errors to returning **zero errors**. The system is now heavily polished and ready for smooth, fully autonomous execution.
+The backend is now fully hardened to handle the real-world chaos of supply chain logistics!

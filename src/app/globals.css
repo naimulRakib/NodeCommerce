@@ -97,3 +97,7 @@ body {
   border-bottom: none !important;
 }
 
+/* ─── Truck Animation ───────────────────────────────────── */
+.custom-truck-icon {
+  transition: transform 2s linear !important;
+}

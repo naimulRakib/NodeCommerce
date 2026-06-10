@@ -125,7 +125,7 @@ function MapClientComponent({
     if (!visibleLayers.district_reseller) return null;
     return (
       <LayerGroup>
-        {nodes.districtResellers.map((node) => (
+        {(nodes.districtResellers || []).filter(n => n?.lat != null && n?.lng != null).slice(0, 500).map((node) => (
           <CircleMarker
             key={node.id}
             center={[node.lat, node.lng]}
@@ -141,8 +141,8 @@ function MapClientComponent({
             }}
           >
             <Popup>
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px" }}>
-                <strong>{node.name || "N/A"}</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px", maxWidth: "200px" }}>
+                <strong className="line-clamp-1 truncate" title={node.name || "N/A"}>{node.name || "N/A"}</strong>
                 <span>Type: District Reseller</span>
                 <span>Location: {node.district || "N/A"}</span>
               </div>
@@ -158,7 +158,7 @@ function MapClientComponent({
     if (!visibleLayers.upazilla_reseller) return null;
     return (
       <LayerGroup>
-        {nodes.upazillaResellers.map((node) => (
+        {(nodes.upazillaResellers || []).filter(n => n?.lat != null && n?.lng != null).slice(0, 500).map((node) => (
           <CircleMarker
             key={node.id}
             center={[node.lat, node.lng]}
@@ -174,8 +174,8 @@ function MapClientComponent({
             }}
           >
             <Popup>
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px" }}>
-                <strong>{node.name || "N/A"}</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px", maxWidth: "200px" }}>
+                <strong className="line-clamp-1 truncate" title={node.name || "N/A"}>{node.name || "N/A"}</strong>
                 <span>Type: Upazilla Reseller</span>
                 <span>Location: {node.upazilla || "N/A"}</span>
               </div>
@@ -191,7 +191,7 @@ function MapClientComponent({
     if (!visibleLayers.local_reseller) return null;
     return (
       <LayerGroup>
-        {nodes.localResellers.map((node) => (
+        {(nodes.localResellers || []).filter(n => n?.lat != null && n?.lng != null).slice(0, 500).map((node) => (
           <CircleMarker
             key={node.id}
             center={[node.lat, node.lng]}
@@ -207,8 +207,8 @@ function MapClientComponent({
             }}
           >
             <Popup>
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px" }}>
-                <strong>{node.name || "N/A"}</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px", maxWidth: "200px" }}>
+                <strong className="line-clamp-1 truncate" title={node.name || "N/A"}>{node.name || "N/A"}</strong>
                 <span>Type: Local Reseller</span>
                 <span>Location: {node.upazilla || "N/A"}</span>
               </div>
@@ -224,7 +224,7 @@ function MapClientComponent({
     if (!visibleLayers.seller) return null;
     return (
       <LayerGroup>
-        {nodes.sellers.map((node) => (
+        {(nodes.sellers || []).filter(n => n?.lat != null && n?.lng != null).slice(0, 500).map((node) => (
           <CircleMarker
             key={node.id}
             center={[node.lat, node.lng]}
@@ -240,8 +240,8 @@ function MapClientComponent({
             }}
           >
             <Popup>
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px" }}>
-                <strong>{node.name || "N/A"}</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontFamily: "sans-serif", fontSize: "12px", maxWidth: "200px" }}>
+                <strong className="line-clamp-1 truncate" title={node.name || "N/A"}>{node.name || "N/A"}</strong>
                 <span>Type: Seller</span>
                 <span>Location: {node.upazilla || "N/A"}</span>
               </div>

@@ -45,6 +45,16 @@ export default function ProductCard({ product, onAddToCart, onViewDetail }: any)
             <span className="truncate">{product.seller.storeName}, {product.seller.upazilla}</span>
           </div>
 
+          {product.nearestReseller && (
+            <div className="mb-3 px-2 py-1 bg-green-50 rounded border border-green-100 flex items-start gap-1.5">
+              <span className="text-green-600 mt-0.5">✓</span>
+              <div className="text-xs text-green-800 leading-tight">
+                <strong>{product.nearestReseller.name}</strong> এর কাছে আছে ({Math.round(product.nearestReseller.distanceKm * 10) / 10} km away).<br/>
+                <span className="opacity-80 text-[10px]">Real-time stock: {product.nearestReseller.stock} units</span>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div>
               {isOutOfStock ? (

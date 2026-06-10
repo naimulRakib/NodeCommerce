@@ -219,7 +219,7 @@ export default function RealtimeActionCenter() {
                     </div>
                   )}
 
-                  {!action.isActioned && action.requiresAction && (
+                  {!action.isActioned && action.requiresAction && !action.actionType.startsWith('interactive_truck_') && (
                     <div className="mt-2 flex justify-end">
                       {action.expiresAt && Date.now() > new Date(action.expiresAt).getTime() ? (
                         <button disabled className="text-xs font-semibold px-3 py-1.5 rounded bg-gray-200 text-gray-500 cursor-not-allowed">
@@ -242,12 +242,88 @@ export default function RealtimeActionCenter() {
                       )}
                     </div>
                   )}
+
+                  {!action.isActioned && action.actionType.startsWith('interactive_truck_') && (
+                    <InteractiveTruckAction action={action} onActioned={() => fetchActions()} />
+                  )}
                 </div>
               ))
             )}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function InteractiveTruckAction({ action, onActioned }: { action: any, onActioned: () => void }) {
+  const [qty, setQty] = useState<string>(action.metadata?.maxQty?.toString() || "");
+  const [loading, setLoading] = useState(false);
+
+  const handleAction = async (type: "accept" | "partial" | "reject") => {
+    setLoading(true);
+    try {
+      const { truckId, stopId } = action.metadata || {};
+      if (!truckId || !stopId) throw new Error("Missing routing metadata");
+
+      await fetch(`/api/aco/trucks/${truckId}/stops/${stopId}/interact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: type,
+          acceptedQty: qty,
+          notificationId: action.id
+        })
+      });
+      onActioned();
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  const isDropoff = action.actionType === "interactive_truck_dropoff";
+
+  return (
+    <div className="mt-3 p-3 bg-white rounded border shadow-inner">
+      <div className="flex items-center gap-2 mb-3">
+        <label className="text-xs font-semibold text-gray-700">
+          {isDropoff ? "Amount to receive (units):" : "Amount to load (units):"}
+        </label>
+        <input 
+          type="number"
+          value={qty}
+          onChange={(e) => setQty(e.target.value)}
+          className="border rounded px-2 py-1 w-20 text-sm font-bold"
+          min="0"
+          max={action.metadata?.maxQty}
+        />
+        <span className="text-xs text-gray-500">/ {action.metadata?.maxQty} max</span>
+      </div>
+
+      <div className="flex gap-2 justify-end">
+        <button 
+          disabled={loading}
+          onClick={() => handleAction("reject")}
+          className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded"
+        >
+          {isDropoff ? "Reject All" : "Cannot Supply"}
+        </button>
+        <button 
+          disabled={loading}
+          onClick={() => handleAction("partial")}
+          className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded"
+        >
+          {isDropoff ? "Accept Partial" : "Give Partial"}
+        </button>
+        <button 
+          disabled={loading}
+          onClick={() => handleAction("accept")}
+          className="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded shadow-sm"
+        >
+          {isDropoff ? "Accept All" : "Give All"}
+        </button>
+      </div>
     </div>
   );
 }

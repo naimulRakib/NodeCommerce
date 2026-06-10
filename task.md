@@ -1,16 +1,11 @@
-# Audit & Bug Fix Tasks
+# UiPath Edge Cases Tasks
 
-- `[x]` Fix Configuration & Types
-  - `[x]` Fix `test-local-resellers.ts` Prisma import
-  - `[x]` Fix `src/lib/realtime-notifier.ts` Prisma import
-  - `[x]` Fix `scripts/hackathon-verify.ts` invalid property
-- `[x]` Fix API Routes
-  - `[x]` Fix `src/app/api/aco/negotiate/route.ts` auth import
-  - `[x]` Fix `src/app/api/aco/phase4-trigger/route.ts` invalid select properties
-- `[x]` Fix UI Components
-  - `[x]` Fix `src/components/district-reseller/DistrictStockOverview.tsx` missing import
-  - `[x]` Fix `src/components/local-reseller/InventoryTable.tsx` VirtualList props
-  - `[x]` Fix `src/components/seller/dashboard/ProfileSection.tsx` NodeJS.Timeout type
-  - `[x]` Fix `src/components/superdashboard/MapClient.tsx` invalid property access
-- `[x]` Verification
-  - `[x]` Run `npx tsc --noEmit` to confirm success
+- `[x]` 1. Security & Validation
+  - `[x]` Add `X-UiPath-Secret` validation to `risk-assessment`, `approval`, and `vendor-score` APIs
+  - `[x]` Add strict JSON payload validation (400 Bad Request) to APIs
+- `[x]` 2. Concurrency Control
+  - `[x]` Rewrite `approval` API to use atomic Prisma updates (`sourceApproved: false` condition) to prevent race conditions
+- `[x]` 3. Hanging Job Sweeper
+  - `[x]` Create `/api/aco/expire-shipments` to auto-reject shipments pending for > 8 hours
+- `[x]` 4. Truck Breakdown
+  - `[x]` Create `/api/uipath/truck-failure` to handle emergency truck failures and rerouting

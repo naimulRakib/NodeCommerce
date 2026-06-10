@@ -68,7 +68,7 @@ export default function SuperDashboardPage() {
     upazilla_reseller: true,
     district_reseller: true,
     pheromone: false,
-    trucks: false,
+    trucks: true,
   });
 
   const [pheromoneData, setPheromoneData] = useState<any>(null);
@@ -90,7 +90,7 @@ export default function SuperDashboardPage() {
   // ----------------------------------------------------
   // DATA FETCHING, JITTER, & SYNC
   // ----------------------------------------------------
-  const fetchNodes = async () => {
+  const fetchNodes = async (isMounted: boolean = true) => {
     try {
       setError(null);
       const res = await fetch("/api/superdashboard/nodes");
@@ -111,15 +111,16 @@ export default function SuperDashboardPage() {
         }));
       };
 
-      setAllNodes({
-        sellers: mapJitteredNodes(data.sellers),
-        localResellers: mapJitteredNodes(data.localResellers),
-        upazillaResellers: data.upazillaResellers || [],
-        districtResellers: data.districtResellers || [],
-      });
-      
-      setSummary(data.summary || null);
-      setLastUpdated(new Date());
+      if (isMounted) {
+        setAllNodes({
+          sellers: mapJitteredNodes(data.sellers),
+          localResellers: mapJitteredNodes(data.localResellers),
+          upazillaResellers: data.upazillaResellers || [],
+          districtResellers: data.districtResellers || [],
+        });
+        setSummary(data.summary || null);
+        setLastUpdated(new Date());
+      }
 
       // Fetch ACO specific data
       try {
@@ -132,15 +133,17 @@ export default function SuperDashboardPage() {
 
         if (pheromonesRes.ok) {
           const pheromones = await pheromonesRes.json();
-          setPheromoneData(pheromones);
+          if (isMounted) setPheromoneData(pheromones);
         }
 
         if (conservationRes.ok) {
           const cvData = await conservationRes.json();
-          if (cvData.violations && cvData.violations.length > 0) {
-            setConservationViolations(cvData.violations);
-          } else {
-            setConservationViolations([]);
+          if (isMounted) {
+            if (cvData.violations && cvData.violations.length > 0) {
+              setConservationViolations(cvData.violations);
+            } else {
+              setConservationViolations([]);
+            }
           }
         }
 
@@ -171,16 +174,19 @@ export default function SuperDashboardPage() {
            if (completedJson.jobs) combinedJobs = [...combinedJobs, ...completedJson.jobs];
         }
 
-        setAcoJobs(combinedJobs);
-        setPendingApprovals(approvals);
+        if (isMounted) {
+          setAcoJobs(combinedJobs);
+          setPendingApprovals(approvals);
+        }
+        
         if (visibleLayers.trucks) {
           const trucksRes = await fetch("/api/aco/trucks?jobId=latest");
           if (trucksRes.ok) {
             const tJson = await trucksRes.json();
-            setTruckData(tJson.trucks || []);
+            if (isMounted) setTruckData(tJson.trucks || []);
           }
         } else {
-          setTruckData([]);
+          if (isMounted) setTruckData([]);
         }
 
       } catch (err) {
@@ -189,9 +195,9 @@ export default function SuperDashboardPage() {
 
     } catch (err: any) {
       console.error("Failed to fetch dashboard nodes:", err);
-      setError(err?.message || "An unexpected error occurred while loading map nodes.");
+      if (isMounted) setError(err?.message || "An unexpected error occurred while loading map nodes.");
     } finally {
-      setLoading(false);
+      if (isMounted) setLoading(false);
     }
   };
 
@@ -199,20 +205,20 @@ export default function SuperDashboardPage() {
     let isMounted = true;
 
     // Initial load
-    fetchNodes();
+    fetchNodes(isMounted);
 
     // Auto-refresh every 120 seconds, but skip when tab is hidden
     // to reduce CPU/network usage and prevent heating
     const intervalId = setInterval(() => {
       if (isMounted && !document.hidden) {
-        fetchNodes();
+        fetchNodes(isMounted);
       }
     }, 120_000);
 
     // Also refresh when the tab becomes visible again after being hidden
     const handleVisibilityChange = () => {
       if (!document.hidden && isMounted) {
-        fetchNodes();
+        fetchNodes(isMounted);
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);

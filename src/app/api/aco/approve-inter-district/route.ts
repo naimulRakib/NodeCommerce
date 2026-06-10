@@ -166,7 +166,7 @@ export async function PATCH(req: NextRequest) {
                 },
               });
 
-              if (!stockItem) throw new Error("Source stock item not found");
+              if (!stockItem) throw new Error("failed_insufficient");
 
               const updateCount = await tx.districtStockItem.updateMany({
                 where: {
