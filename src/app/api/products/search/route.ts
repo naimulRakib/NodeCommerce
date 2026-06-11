@@ -111,28 +111,37 @@ export async function GET(request: Request) {
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    const buyerId = user?.id || null;
+    let buyerId = user?.id || null;
     let buyerLat = 23.8;
     let buyerLng = 90.4;
 
     if (buyerId) {
         const bp = await prisma.buyerProfile.findUnique({ where: { id: buyerId } });
-        if (bp?.lat && bp?.lng) {
-            buyerLat = bp.lat;
-            buyerLng = bp.lng;
+        if (bp) {
+            if (bp.lat && bp.lng) {
+                buyerLat = bp.lat;
+                buyerLng = bp.lng;
+            }
+        } else {
+            // Not a registered buyer profile (might be a seller/reseller user id)
+            buyerId = null;
         }
     }
 
     // Try Cache First
     const cacheKey = `search:${q}:${category}:${upazilla}:${minPrice}:${maxPrice}:${page}:${pageSize}:${buyerLat}:${buyerLng}`;
-    try {
-        const cached = await redis.get(cacheKey);
-        if (cached) {
-            trackBehaviour(buyerId, "search", { query: q, category, cached: true });
-            return NextResponse.json(JSON.parse(cached));
+    if (redis.status === 'ready' || redis.status === 'connecting') {
+        try {
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                trackBehaviour(buyerId, "search", { query: q, category, cached: true });
+                return NextResponse.json(JSON.parse(cached));
+            }
+        } catch (e: any) {
+            if (!e.message?.includes('Connection is closed')) {
+                console.warn("Redis cache read failed", e.message);
+            }
         }
-    } catch (e) {
-        console.warn("Redis cache read failed", e);
     }
 
     const [total, sellerProducts] = await Promise.all([
@@ -210,10 +219,14 @@ export async function GET(request: Request) {
     };
 
     // Cache the response for 2 minutes (120 seconds)
-    try {
-        await redis.setex(cacheKey, 120, JSON.stringify(responseData));
-    } catch (e) {
-        console.warn("Redis cache write failed", e);
+    if (redis.status === 'ready' || redis.status === 'connecting') {
+        try {
+            await redis.setex(cacheKey, 120, JSON.stringify(responseData));
+        } catch (e: any) {
+            if (!e.message?.includes('Connection is closed')) {
+                console.warn("Redis cache write failed", e.message);
+            }
+        }
     }
 
     return NextResponse.json(responseData);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { trackBehaviour } from "@/lib/behaviour";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
     try {
@@ -10,7 +11,15 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { type, payload, buyerId: providedBuyerId } = body;
 
-        const finalBuyerId = user?.id || providedBuyerId || null;
+        let finalBuyerId = user?.id || providedBuyerId || null;
+
+        if (finalBuyerId) {
+            // Verify BuyerProfile exists to prevent Prisma FK violations
+            const bp = await prisma.buyerProfile.findUnique({ where: { id: finalBuyerId } });
+            if (!bp) {
+                finalBuyerId = null;
+            }
+        }
 
         if (finalBuyerId) {
             await trackBehaviour(finalBuyerId, type, payload);

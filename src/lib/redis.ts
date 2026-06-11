@@ -9,6 +9,10 @@ export const redis =
     retryStrategy: () => null // Prevent crashing during Next.js builds if Redis is offline
   });
 
-redis.on('error', (err) => console.warn('Redis Connection Error:', err.message));
+redis.on('error', (err: any) => {
+  if (err.code !== 'ECONNREFUSED' && !err.message?.includes('Connection is closed')) {
+    console.warn('Redis Connection Error:', err.message);
+  }
+});
 
 if (process.env.NODE_ENV !== 'production') globalForRedis.redis = redis;
