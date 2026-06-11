@@ -29,8 +29,8 @@ export default async function Home() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
-    // Fix Q6: count only seller profiles, not all profiles
-    prisma.profile.count({ where: { role: "seller" } }),
+    // Count only seller profiles — Profile model uses 'type' not 'role'
+    prisma.profile.count({ where: { type: "seller" } }),
   ]);
 
   const categories = Object.keys(CATEGORY_ICONS);
