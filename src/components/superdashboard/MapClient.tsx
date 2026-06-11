@@ -15,8 +15,11 @@ import {
 import "leaflet/dist/leaflet.css";
 import PheromoneLayer from "./PheromoneLayer";
 import dynamic from "next/dynamic";
+import type { TruckRoute } from "./ACOTruckLayer";
 
 const TruckRouteMap = dynamic(() => import("../aco/TruckRouteMap"), { ssr: false });
+const ACOTruckLayer = dynamic(() => import("./ACOTruckLayer"), { ssr: false });
+
 
 // @ts-ignore
 import DISTRICT_CENTROIDS_RAW from "@/data/district-centroids.js";
@@ -59,7 +62,11 @@ interface MapClientProps {
   pheromoneData?: any;
   showPheromoneLayer?: boolean;
   truckData?: any[];
+  /** Live ACO truck animation routes */
+  acoRoutes?: TruckRoute[];
+  onTruckArrived?: (route: TruckRoute) => void;
 }
+
 
 // Custom MarkerCluster icons removed for React 19 compatibility
 
@@ -101,6 +108,8 @@ function MapClientComponent({
   pheromoneData,
   showPheromoneLayer,
   truckData,
+  acoRoutes,
+  onTruckArrived,
 }: MapClientProps) {
   const [zoom, setZoom] = useState(7);
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
@@ -285,6 +294,15 @@ function MapClientComponent({
 
         {visibleLayers.trucks && truckData && truckData.length > 0 && (
           <TruckRouteMap trucks={truckData} />
+        )}
+
+        {/* Live ACO truck animation layer */}
+        {acoRoutes && acoRoutes.length > 0 && (
+          <ACOTruckLayer
+            routes={acoRoutes}
+            onTruckArrived={onTruckArrived}
+            travelMs={4000}
+          />
         )}
 
         <ZoomControl position="bottomright" />

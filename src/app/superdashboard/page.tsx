@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import StatsSummary from "@/components/superdashboard/StatsSummary";
 import LayerControls from "@/components/superdashboard/LayerControls";
 import SearchFilter from "@/components/superdashboard/SearchFilter";
 import NodeDetailPanel from "@/components/superdashboard/NodeDetailPanel";
 import MapErrorBoundary from "@/components/superdashboard/MapErrorBoundary";
 import dynamic from "next/dynamic";
+import DeliveryManifestModal from "@/components/superdashboard/DeliveryManifestModal";
+import type { TruckRoute } from "@/components/superdashboard/ACOTruckLayer";
 
 const MapWrapper = dynamic(
   () => import("@/components/superdashboard/MapWrapper"),
@@ -98,6 +100,50 @@ export default function SuperDashboardPage() {
   // ACO Flow Visualization
   const [lastAcoResult, setLastAcoResult] = useState<any>(null);
   const [acoRunning, setAcoRunning] = useState<boolean>(false);
+
+  // ── ACO Truck Animation State ──────────────────────────────────────────
+  /** All resolved shipment routes for the current ACO run */
+  const [acoRoutes, setAcoRoutes] = useState<TruckRoute[]>([]);
+  /** Queue of routes waiting to show manifest modal */
+  const arrivedQueueRef = useRef<TruckRoute[]>([]);
+  /** Currently shown manifest modal */
+  const [manifestRoute, setManifestRoute] = useState<TruckRoute | null>(null);
+  /** Tracks which phases have been confirmed (to avoid duplicate modals) */
+  const confirmedPhasesRef = useRef<Set<number>>(new Set());
+
+  /** Fetch shipment routes after an ACO job completes */
+  const fetchAndAnimateShipments = useCallback(async (jobId: string) => {
+    try {
+      const res = await fetch(`/api/aco/shipment-routes?jobId=${jobId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const routes: TruckRoute[] = data.shipments ?? [];
+      if (routes.length === 0) return;
+      // Reset confirmation tracking
+      confirmedPhasesRef.current = new Set();
+      arrivedQueueRef.current = [];
+      setAcoRoutes(routes);
+    } catch (err) {
+      console.warn("[fetchAndAnimateShipments]", err);
+    }
+  }, []);
+
+  /** Called by ACOTruckLayer when a truck finishes its animation */
+  const handleTruckArrived = useCallback((route: TruckRoute) => {
+    // Only show one modal per phase
+    if (confirmedPhasesRef.current.has(route.phase)) return;
+    setManifestRoute(route);
+  }, []);
+
+  /** Called when user clicks "✅ গ্রহণ নিশ্চিত করুন" in the manifest modal */
+  const handleManifestConfirm = useCallback(() => {
+    if (!manifestRoute) return;
+    confirmedPhasesRef.current.add(manifestRoute.phase);
+    setManifestRoute(null);
+    // Refresh dashboard data after confirmation
+    fetchNodes();
+  }, [manifestRoute]);
+
 
   // ----------------------------------------------------
   // DATA FETCHING, JITTER, & SYNC
@@ -543,6 +589,8 @@ export default function SuperDashboardPage() {
                 pheromoneData={pheromoneData}
                 showPheromoneLayer={visibleLayers.pheromone}
                 truckData={truckData}
+                acoRoutes={acoRoutes}
+                onTruckArrived={handleTruckArrived}
               />
             </MapErrorBoundary>
 
@@ -604,6 +652,10 @@ export default function SuperDashboardPage() {
                 setLastAcoResult(result);
                 setAcoRunning(false);
                 setAcoJobs(prev => [result, ...prev]);
+                // Trigger truck animation if we got a jobId back
+                if (result?.jobId) {
+                  fetchAndAnimateShipments(result.jobId);
+                }
                 fetchNodes();
               }}
               onError={() => setAcoRunning(false)}
@@ -653,6 +705,15 @@ export default function SuperDashboardPage() {
         }}
         onClose={() => setShowGrokTerminal(false)}
       />
+
+      {/* UiPath Delivery Manifest Modal — shown when a truck arrives */}
+      {manifestRoute && (
+        <DeliveryManifestModal
+          route={manifestRoute}
+          onConfirm={handleManifestConfirm}
+          onClose={() => setManifestRoute(null)}
+        />
+      )}
 
       {/* 3. MOBILE FLOATING ACTION & BOTTOM DRAWER */}
       {/* Floating filters button on mobile (Fixed bottom-left, purple bg, opens bottom sheet) */}

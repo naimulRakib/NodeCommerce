@@ -930,6 +930,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
+      jobId: globalJob.id,       // ← for truck animation
       globalJobId: globalJob.id,
       summary: {
         phase1: {

@@ -3,6 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import MapLoadingSkeleton from "./MapLoadingSkeleton";
+import type { TruckRoute } from "./ACOTruckLayer";
 
 // Dynamically import MapClient to prevent Next.js SSR
 const MapClient = dynamic(() => import("./MapClient"), {
@@ -41,6 +42,9 @@ interface MapWrapperProps {
   pheromoneData?: any;
   showPheromoneLayer?: boolean;
   truckData?: any[];
+  /** Live ACO truck animation routes — passed straight to ACOTruckLayer */
+  acoRoutes?: TruckRoute[];
+  onTruckArrived?: (route: TruckRoute) => void;
 }
 
 export default function MapWrapper(props: MapWrapperProps) {
