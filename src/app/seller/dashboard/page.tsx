@@ -17,9 +17,12 @@ const QRResult = dynamic(
 import OrdersTab from "@/components/seller/dashboard/OrdersTab";
 import { StockOrdersPanel } from "@/components/seller/StockOrdersPanel";
 import { AcoShipmentsPanel } from "@/components/seller/AcoShipmentsPanel";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { MetricCard } from "@/components/ui/MetricCard";
 
 export default function SellerDashboardPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("inventory");
   const [sellerProfile, setSellerProfile] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
@@ -463,24 +466,50 @@ export default function SellerDashboardPage() {
           {/* Stats Cards — visible in inventory and orders tabs */}
           {(activeTab === "inventory" || activeTab === "orders") && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: "Total Revenue", value: `৳${(stats?.totalRevenue ?? 0).toLocaleString("en-BD")}`, icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 6v1m0 3v1M3 12a9 9 0 1118 0 9 9 0 01-18 0z", color: "text-green-600 bg-green-50" },
-                { label: "Total Orders", value: stats?.totalOrders ?? 0, icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z", color: "text-blue-600 bg-blue-50" },
-                { label: "Pending Orders", value: stats?.pendingCount ?? 0, icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", color: "text-orange-600 bg-orange-50" },
-                { label: "Products Listed", value: stats?.inventory ?? 0, icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4", color: "text-purple-600 bg-purple-50" },
-              ].map(stat => (
-                <div key={stat.label} className="bg-white rounded-xl border border-gray-100 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${stat.color}`}>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
-                    <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                </div>
-              ))}
+              <MetricCard
+                labelBn="মোট আয়"
+                labelEn="Total Revenue"
+                value={`৳${(stats?.totalRevenue ?? 0).toLocaleString("en-BD")}`}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 6v1m0 3v1M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+                  </svg>
+                }
+                accentColor="var(--nc-success)"
+              />
+              <MetricCard
+                labelBn="মোট অর্ডার"
+                labelEn="Total Orders"
+                value={stats?.totalOrders ?? 0}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                }
+                accentColor="var(--nc-primary)"
+              />
+              <MetricCard
+                labelBn="পেন্ডিং অর্ডার"
+                labelEn="Pending Orders"
+                value={stats?.pendingCount ?? 0}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                }
+                accentColor="var(--nc-warning)"
+              />
+              <MetricCard
+                labelBn="পণ্য তালিকাভুক্ত"
+                labelEn="Products Listed"
+                value={stats?.inventory ?? 0}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                }
+                accentColor="var(--nc-info)"
+              />
             </div>
           )}
 

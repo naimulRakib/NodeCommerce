@@ -1,0 +1,77 @@
+:root {
+  --nc-primary: #006A4E;
+  --nc-primary-dark: #004D38;
+  --nc-primary-light: #E6F4F0;
+  --nc-primary-mid: #00956D;
+
+  --nc-accent: #F42A41;
+  --nc-accent-light: #FFF0F2;
+  --nc-accent-dark: #C01E30;
+
+  --nc-gold: #E8A020;
+  --nc-gold-light: #FDF6E8;
+
+  --nc-surface: #FFFFFF;
+  --nc-surface-2: #F8FAF9;
+  --nc-surface-3: #F0F5F3;
+  --nc-surface-4: #E6EFEC;
+
+  --nc-text-primary: #0D1F1A;
+  --nc-text-secondary: #3D5A52;
+  --nc-text-muted: #7A9990;
+  --nc-text-inverse: #FFFFFF;
+
+  --nc-border: #D4E5E0;
+  --nc-border-strong: #B0CEC7;
+
+  --nc-success: #1A7A4A;
+  --nc-success-light: #E8F5EE;
+  --nc-warning: #BA7517;
+  --nc-warning-light: #FDF3E3;
+  --nc-danger: #C41E3A;
+  --nc-danger-light: #FDF0F2;
+  --nc-info: #1A5FA8;
+  --nc-info-light: #EBF3FC;
+
+  --nc-radius-sm: 6px;
+  --nc-radius-md: 10px;
+  --nc-radius-lg: 16px;
+  --nc-radius-xl: 24px;
+  --nc-radius-full: 9999px;
+
+  --nc-shadow-sm: 0 1px 3px rgba(0, 106, 78, 0.08),
+                  0 1px 2px rgba(0, 106, 78, 0.04);
+  --nc-shadow-md: 0 4px 12px rgba(0, 106, 78, 0.10),
+                  0 2px 4px rgba(0, 106, 78, 0.06);
+  --nc-shadow-lg: 0 8px 24px rgba(0, 106, 78, 0.12),
+                  0 4px 8px rgba(0, 106, 78, 0.08);
+  --nc-shadow-xl: 0 16px 48px rgba(0, 106, 78, 0.14);
+
+  --nc-font-bangla: "Hind Siliguri", "SolaimanLipi",
+                    "Noto Sans Bengali", sans-serif;
+  --nc-font-english: "Inter", "Segoe UI", system-ui, sans-serif;
+  --nc-font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --nc-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --nc-transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --nc-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --nc-z-dropdown: 100;
+  --nc-z-sticky: 200;
+  --nc-z-modal: 300;
+  --nc-z-toast: 400;
+  --nc-z-tooltip: 500;
+}
+
+[data-theme="dark"] {
+  --nc-surface: #0D1F1A;
+  --nc-surface-2: #152B24;
+  --nc-surface-3: #1D3A30;
+  --nc-surface-4: #24473C;
+  --nc-text-primary: #E8F5F0;
+  --nc-text-secondary: #A8C5BB;
+  --nc-text-muted: #6B9088;
+  --nc-border: #1D3A30;
+  --nc-border-strong: #2A5045;
+  --nc-primary-light: #1D3A30;
+}

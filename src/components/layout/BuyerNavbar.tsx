@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cartContext";
-
 import { supabaseClient } from "@/lib/supabase";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 
 export default function BuyerNavbar() {
   const router = useRouter();
   const { cartCount, setIsCartOpen } = useCart();
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -33,7 +35,7 @@ export default function BuyerNavbar() {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <nav className="nc-navbar bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo & Search */}
@@ -47,7 +49,7 @@ export default function BuyerNavbar() {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search products..."
+                  placeholder={t("পণ্য খুঁজুন...", "Search products...")}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full text-sm focus:ring-orange-500 focus:border-orange-500 bg-gray-50"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -61,6 +63,9 @@ export default function BuyerNavbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 sm:gap-4">
+            <div className="hidden sm:block">
+              <LanguageToggle />
+            </div>
 
             <button
               onClick={() => setIsCartOpen(true)}
@@ -90,13 +95,13 @@ export default function BuyerNavbar() {
                 {menuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-100">
                     <Link href="/buyer/dashboard" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      My Dashboard
+                      {t("আমার ড্যাশবোর্ড", "My Dashboard")}
                     </Link>
                     <Link href="/buyer/dashboard?tab=orders" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                      My Orders
+                      {t("আমার অর্ডার", "My Orders")}
                     </Link>
                     <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                      Log Out
+                      {t("লগ আউট", "Log Out")}
                     </button>
                   </div>
                 )}
@@ -106,7 +111,7 @@ export default function BuyerNavbar() {
                 href="/buyer/login"
                 className="text-sm font-medium text-orange-600 hover:text-orange-500 bg-orange-50 px-4 py-2 rounded-md"
               >
-                Log In
+                {t("লগ ইন", "Log In")}
               </Link>
             )}
           </div>

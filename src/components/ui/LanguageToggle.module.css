@@ -1,0 +1,33 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--nc-surface);
+  border: 1px solid var(--nc-border);
+  border-radius: var(--nc-radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--nc-transition-fast);
+  color: var(--nc-text-secondary);
+}
+
+.toggle:hover {
+  border-color: var(--nc-primary);
+  color: var(--nc-primary);
+  background: var(--nc-primary-light);
+}
+
+.active {
+  color: var(--nc-primary);
+  font-weight: 600;
+}
+
+.inactive {
+  color: var(--nc-text-muted);
+}
+
+.divider {
+  color: var(--nc-border-strong);
+}

@@ -1,5 +1,8 @@
 @import "tailwindcss";
-
+@import "../styles/bengali-design-system.css";
+@import "../styles/buttons.css";
+@import "../styles/forms.css";
+@import "../styles/tables.css";
 /* ─── Smooth Scroll ─────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
@@ -7,7 +10,31 @@ html {
 
 /* ─── Font ──────────────────────────────────────────────── */
 body {
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-family: var(--nc-font-bangla);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--nc-text-primary);
+  background: var(--nc-surface-2);
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono, [data-type="code"], .shipment-id, .product-code {
+  font-family: var(--nc-font-mono);
+}
+
+.font-english, [lang="en"] {
+  font-family: var(--nc-font-english);
+}
+
+p, li, td, span, div {
+  line-height: 1.75;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--nc-font-bangla);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--nc-text-primary);
 }
 
 /* ─── Scrollbar Hide ─────────────────────────────────────── */
@@ -100,4 +127,44 @@ body {
 /* ─── Truck Animation ───────────────────────────────────── */
 .custom-truck-icon {
   transition: transform 2s linear !important;
+}
+
+/* ─── Print CSS ─────────────────────────────────────────── */
+@media print {
+  .nc-navbar,
+  .nc-mobile-bottom-nav,
+  .nc-toast-container,
+  .nc-demo-controls,
+  [class*="mobileBottomNav"],
+  [class*="navbar"],
+  [class*="toast"],
+  [class*="floatingButton"] {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  .pageContent {
+    max-width: none;
+    padding: 0;
+  }
+
+  .nc-table-wrapper {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+
+  a {
+    color: black;
+    text-decoration: none;
+  }
+
+  .nc-btn {
+    display: none;
+  }
 }

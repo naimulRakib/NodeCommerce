@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseClient } from "@/lib/supabase";
 import OrderStatusBadge from "@/components/buyer/OrderStatusBadge";
 import bdLocations from "@/data/bangladesh-locations.json";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const STATUS_STEPS = ["pending", "confirmed", "processing", "shipped", "delivered"];
 
@@ -78,6 +79,7 @@ function BuyerDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "profile";
+  const { t } = useLanguage();
   
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loadingAuth, setLoadingAuth] = useState(true);
@@ -201,8 +203,8 @@ function BuyerDashboardContent() {
         </div>
         <nav className="flex flex-row md:flex-col p-3 gap-1 overflow-x-auto">
           {[
-            { id: "profile", label: "My Profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
-            { id: "orders", label: "My Orders", icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" },
+            { id: "profile", labelBn: "আমার প্রোফাইল", labelEn: "My Profile", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+            { id: "orders", labelBn: "আমার অর্ডার", labelEn: "My Orders", icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" },
           ].map(tab => (
             <button
               key={tab.id}
@@ -216,7 +218,7 @@ function BuyerDashboardContent() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
               </svg>
-              {tab.label}
+              {t(tab.labelBn, tab.labelEn)}
               {tab.id === "orders" && orders.length > 0 && (
                 <span className="ml-auto text-xs bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full">
                   {orders.length}
@@ -231,7 +233,7 @@ function BuyerDashboardContent() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M16.65 16.65A7.5 7.5 0 1116.65 2a7.5 7.5 0 010 14.65z" />
             </svg>
-            Browse Products
+            {t("পণ্য খুঁজুন", "Browse Products")}
           </button>
         </nav>
       </aside>
@@ -240,63 +242,63 @@ function BuyerDashboardContent() {
       <main className="flex-1 min-w-0">
         {activeTab === "profile" && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Profile Settings</h2>
-            <p className="text-sm text-gray-500 mb-6">Manage your personal information and delivery address.</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{t("প্রোফাইল সেটিংস", "Profile Settings")}</h2>
+            <p className="text-sm text-gray-500 mb-6">{t("আপনার ব্যক্তিগত তথ্য পরিচালনা করুন।", "Manage your personal information and delivery address.")}</p>
             <form onSubmit={handleProfileSave} className="space-y-6 max-w-2xl">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <div className="nc-form-group">
+                  <label className="nc-label">{t("পুরো নাম", "Full Name")}</label>
                   <input
                     type="text"
                     value={profile?.fullName || ""}
                     onChange={e => setProfile({ ...profile, fullName: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                    className="nc-input"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div className="nc-form-group">
+                  <label className="nc-label">{t("ইমেইল", "Email")}</label>
                   <input
                     type="email"
                     value={user?.email || ""}
                     disabled
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
+                    className="nc-input bg-gray-50 text-gray-400 cursor-not-allowed"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <div className="nc-form-group">
+                  <label className="nc-label">{t("ফোন নম্বর", "Phone Number")}</label>
                   <input
                     type="tel"
                     value={profile?.phone || ""}
                     onChange={e => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                    className="nc-input"
                   />
                 </div>
               </div>
 
               <div className="pt-6 border-t border-gray-100">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">Delivery Address</h3>
+                <h3 className="text-base font-semibold text-gray-900 mb-4">{t("ডেলিভারি ঠিকানা", "Delivery Address")}</h3>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
+                  <div className="nc-form-group">
+                    <label className="nc-label">{t("রাস্তার ঠিকানা", "Street Address")}</label>
                     <textarea
                       rows={2}
                       value={profile?.address || ""}
                       onChange={e => setProfile({ ...profile, address: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                      className="nc-input"
                       required
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">City / District</label>
+                    <div className="nc-form-group">
+                      <label className="nc-label">{t("শহর / জেলা", "City / District")}</label>
                       <select
                         value={profile?.district || ""}
                         onChange={e => {
                           const dist = e.target.value;
                           setProfile({ ...profile, district: dist, city: dist, upazilla: "" });
                         }}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white"
+                        className="nc-select"
                         required
                       >
                         <option value="">Select District</option>
@@ -305,12 +307,12 @@ function BuyerDashboardContent() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Upazilla</label>
+                    <div className="nc-form-group">
+                      <label className="nc-label">{t("উপজেলা", "Upazilla")}</label>
                       <select
                         value={profile?.upazilla || ""}
                         onChange={e => setProfile({ ...profile, upazilla: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        className="nc-select disabled:bg-gray-50 disabled:cursor-not-allowed"
                         required
                         disabled={!profile?.district}
                       >
@@ -320,13 +322,13 @@ function BuyerDashboardContent() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Local Area (Optional)</label>
+                    <div className="nc-form-group">
+                      <label className="nc-label">{t("লোকাল এরিয়া (ঐচ্ছিক)", "Local Area (Optional)")}</label>
                       <input
                         type="text"
                         value={profile?.city !== profile?.district ? profile?.city || "" : ""}
                         onChange={e => setProfile({ ...profile, city: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        className="nc-input"
                         placeholder="E.g. Dhanmondi, Agrabad"
                       />
                     </div>
@@ -344,11 +346,11 @@ function BuyerDashboardContent() {
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="px-6 py-2.5 bg-orange-600 text-white rounded-lg font-semibold text-sm hover:bg-orange-700 disabled:opacity-50 transition flex items-center gap-2"
+                  className="nc-btn nc-btn-primary px-6"
                 >
                   {savingProfile ? (
-                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</>
-                  ) : "Save Changes"}
+                    <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t("সেভ হচ্ছে...", "Saving...")}</>
+                  ) : t("পরিবর্তন সেভ করুন", "Save Changes")}
                 </button>
               </div>
             </form>
@@ -358,10 +360,10 @@ function BuyerDashboardContent() {
         {activeTab === "orders" && (
           <div className="space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">My Orders</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t("আমার অর্ডার", "My Orders")}</h2>
               <button onClick={fetchOrders} className="text-xs text-orange-600 hover:text-orange-800 font-medium flex items-center gap-1 transition">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                Refresh
+                {t("রিফ্রেশ", "Refresh")}
               </button>
             </div>
 
@@ -464,11 +466,11 @@ function BuyerDashboardContent() {
                         <button
                           onClick={() => handleCancelOrder(order.id)}
                           disabled={cancellingId === order.id}
-                          className="px-4 py-1.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 font-medium transition disabled:opacity-50 flex items-center gap-2"
+                          className="nc-btn nc-btn-danger nc-btn-sm"
                         >
                           {cancellingId === order.id ? (
-                            <><div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />Cancelling...</>
-                          ) : "Cancel Order"}
+                            <><div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />{t("বাতিল হচ্ছে...", "Cancelling...")}</>
+                          ) : t("অর্ডার বাতিল করুন", "Cancel Order")}
                         </button>
                       </div>
                     )}

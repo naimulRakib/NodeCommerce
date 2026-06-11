@@ -7,10 +7,14 @@ import SearchBar from "@/components/buyer/SearchBar";
 import ProductCard from "@/components/buyer/ProductCard";
 import { useCart } from "@/lib/cartContext";
 import ProductSearchPanel from "@/components/delivery/ProductSearchPanel";
+import { useLanguage } from "@/contexts/LanguageContext";
+import styles from "./ShopPage.module.css";
+import Image from "next/image";
 
 export default function BuyerSearchPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const { t } = useLanguage();
   const [category, setCategory] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
@@ -97,184 +101,160 @@ export default function BuyerSearchPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <div className="flex-1 w-full flex justify-center sm:justify-start">
+    <div className={styles.shopPage}>
+      <div className={styles.shopHero}>
+        <div className={styles.heroInner}>
+          <h1 className={styles.heroTitle}>
+            {t("আপনার পণ্য খুঁজুন", "Find Your Products")}
+          </h1>
+          <p className={styles.heroSubtitle}>
+            {t(
+              "বাংলাদেশের সেরা পণ্য, সেরা দামে",
+              "Best products at the best prices"
+            )}
+          </p>
+          <div className={styles.heroSearchWrapper}>
             <SearchBar onSearch={handleSearch} initialValue={query} />
           </div>
-          <button
-            className="sm:hidden w-full flex justify-center items-center gap-2 bg-gray-100 text-gray-700 py-2 rounded-md"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-            Filters
-          </button>
         </div>
-      </header>
+      </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
-        {/* Sidebar Filters */}
-        <aside className={`${sidebarOpen ? "block" : "hidden"} lg:block w-full lg:w-64 flex-shrink-0 bg-white p-5 rounded-lg border border-gray-200 h-fit sticky top-24`}>
-          <div className="flex justify-between items-center mb-4 lg:hidden">
-            <h2 className="text-lg font-bold">Filters</h2>
-            <button onClick={() => setSidebarOpen(false)} className="text-gray-500">✕</button>
+      <div className={styles.shopBody}>
+        <div className={styles.categoryScroll}>
+          <button
+            className={`${styles.categoryPill} ${category === "" ? styles.categoryPillActive : ""}`}
+            onClick={() => { setCategory(""); setPage(1); }}
+          >
+            {t("সব ক্যাটাগরি", "All Categories")}
+          </button>
+          {CATEGORIES.map(c => (
+            <button
+              key={c}
+              className={`${styles.categoryPill} ${category === c ? styles.categoryPillActive : ""}`}
+              onClick={() => { setCategory(c); setPage(1); }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.shopToolbar}>
+          <span className={styles.resultCount}>
+            {t(
+              `${total}টি পণ্য পাওয়া গেছে`,
+              `${total} products found`
+            )}
+          </span>
+        </div>
+
+        {error ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center text-red-500">
+            {error}
           </div>
-
-          <div className="space-y-6">
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Local Delivery</h3>
-              <p className="text-xs text-gray-500 mb-2">Search local resellers near you for instant delivery.</p>
-              <ProductSearchPanel />
-            </div>
-            
-            <hr className="my-6 border-gray-200" />
-            
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Category</h3>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={category === ""}
-                    onChange={() => { setCategory(""); setPage(1); }}
-                    className="text-orange-500 focus:ring-orange-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">All Categories</span>
-                </label>
-                {CATEGORIES.map(cat => (
-                  <label key={cat} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="category"
-                      checked={category === cat}
-                      onChange={() => { setCategory(cat); setPage(1); }}
-                      className="text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{cat}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Price Range</h3>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={minPrice}
-                  onChange={e => setMinPrice(e.target.value)}
-                  onBlur={() => setPage(1)}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"
-                />
-                <span className="text-gray-400">-</span>
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={maxPrice}
-                  onChange={e => setMaxPrice(e.target.value)}
-                  onBlur={() => setPage(1)}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Location</h3>
-              <input
-                type="text"
-                placeholder="Enter Upazilla"
-                value={upazilla}
-                onChange={e => setUpazilla(e.target.value)}
-                onBlur={() => setPage(1)}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm"
-              />
-            </div>
-          </div>
-        </aside>
-
-        {/* Product Grid */}
-        <div className="flex-1 flex flex-col">
-          <div className="mb-4 flex items-center justify-between text-sm text-gray-600">
-            <span>Showing {products.length} of {total} products</span>
-          </div>
-
-          {error ? (
-            <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-sm border border-red-100 p-12 text-center h-full">
-              <svg className="w-12 h-12 text-red-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">Something went wrong</h3>
-              <p className="text-sm text-red-500 max-w-sm mb-4">{error}</p>
-              <button onClick={() => fetchProducts()} className="px-4 py-2 bg-orange-100 text-orange-700 font-medium rounded-md hover:bg-orange-200 transition">Try Again</button>
-            </div>
-          ) : loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        ) : loading ? (
+           <div className={styles.productGrid}>
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="animate-pulse flex flex-col bg-white rounded-lg p-4 shadow-sm border border-gray-100 h-72">
-                  <div className="bg-gray-200 h-32 w-full rounded-md mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="mt-auto h-6 bg-gray-200 rounded w-1/3"></div>
+                <div key={i} className="nc-skeleton h-64 w-full"></div>
+              ))}
+           </div>
+        ) : products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center text-gray-500">
+             {t("কোনো পণ্য পাওয়া যায়নি", "No products found")}
+          </div>
+        ) : (
+          <>
+            <div className={styles.productGrid}>
+              {products.map(p => (
+                <div
+                  key={p.id}
+                  className={styles.productCard}
+                  onClick={() => handleViewDetail(p)}
+                >
+                  <div className={styles.productImageWrapper}>
+                    <div className="relative w-full h-full bg-gray-100 flex items-center justify-center text-4xl">
+                      {p.category === 'Rice' ? '🍚' :
+                       p.category === 'Vegetables' ? '🥕' :
+                       p.category === 'Fruits' ? '🍎' :
+                       p.category === 'Fish' ? '🐟' :
+                       p.category === 'Meat' ? '🥩' :
+                       p.category === 'Spices' ? '🌶️' : '📦'}
+                    </div>
+                    <span className={`${styles.stockBadge}
+                      ${p.stock > 10 ? styles.inStock :
+                        p.stock > 0 ? styles.lowStock :
+                        styles.outOfStock}`}
+                    >
+                      {p.stock > 10
+                        ? t("মজুদ আছে", "In Stock")
+                        : p.stock > 0
+                        ? t("কম মজুদ", "Low Stock")
+                        : t("মজুদ শেষ", "Out of Stock")}
+                    </span>
+                  </div>
+
+                  <div className={styles.productInfo}>
+                    <span className={styles.productCode}>
+                      {p.productCode || p.id.substring(0, 8)}
+                    </span>
+                    <h3 className={styles.productName}>
+                      {t(p.nameBn || p.name, p.name)}
+                    </h3>
+                    <span className={styles.productLocation}>
+                      {p.seller?.user?.profile?.businessName || p.sellerLocation || 'Local Vendor'}
+                      {p.distanceKm && ` · ${p.distanceKm} কিমি`}
+                    </span>
+                    <div className={styles.productFooter}>
+                      <div>
+                        <span className={styles.productPrice}>
+                          ৳{p.price}
+                        </span>
+                        <span className={styles.productPriceUnit}>
+                          /{t(p.unitBn || p.unit, p.unit || "unit")}
+                        </span>
+                      </div>
+                      <button
+                        className={styles.addToCartButton}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleAddToCart(p)
+                        }}
+                        aria-label={t(
+                          `${p.name} কার্টে যোগ করুন`,
+                          `Add ${p.name} to cart`
+                        )}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-          ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center h-full">
-              <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No products found</h3>
-              <p className="text-gray-500 text-sm max-w-sm">We couldn't find anything matching your search. Try adjusting your filters or search terms.</p>
-              {(query || category || minPrice || maxPrice || upazilla) && (
-                <button
-                  onClick={() => {
-                    setQuery(""); setCategory(""); setMinPrice(""); setMaxPrice(""); setUpazilla(""); setPage(1);
-                  }}
-                  className="mt-6 px-4 py-2 bg-orange-100 text-orange-700 font-medium rounded-md hover:bg-orange-200 transition"
-                >
-                  Clear all filters
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                {products.map((p: any) => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    onAddToCart={handleAddToCart}
-                    onViewDetail={handleViewDetail}
-                  />
-                ))}
-              </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="mt-8 flex justify-center gap-2">
-                  <button
-                    disabled={page === 1}
-                    onClick={() => setPage(p => p - 1)}
-                    className="px-3 py-1 border rounded-md disabled:opacity-50 hover:bg-gray-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-4 py-1 text-gray-700 font-medium border-y">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                    className="px-3 py-1 border rounded-md disabled:opacity-50 hover:bg-gray-50"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </main>
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center gap-2">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="nc-btn nc-btn-secondary nc-btn-sm"
+                >
+                  {t("আগে", "Prev")}
+                </button>
+                <span className="px-4 py-1 text-gray-700 font-medium">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="nc-btn nc-btn-secondary nc-btn-sm"
+                >
+                  {t("পরে", "Next")}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

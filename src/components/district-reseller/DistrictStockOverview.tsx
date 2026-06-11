@@ -5,6 +5,7 @@ import { Package, Search, Send, CheckCircle2, Clock, AlertCircle } from "lucide-
 import SendToUpazillaModal from "./SendToUpazillaModal";
 import { UpazillaAvailableStockView } from "./UpazillaAvailableStockView";
 import { useToast } from "@/components/layout/ToastProvider";
+import { MetricCard } from "@/components/ui/MetricCard";
 
 interface DistrictStockItem {
   id: string;
@@ -136,29 +137,35 @@ export default function DistrictStockOverview({ districtResellerId }: { district
 
       {/* Summary Bar */}
       {!loading && !error && inventoryRows.length > 0 && (
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-6 py-4 rounded-xl shadow-md flex flex-wrap items-center justify-between gap-4 font-medium text-sm">
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col">
-              <span className="text-slate-400 text-xs uppercase tracking-wider">Products in Hub</span>
-              <span className="text-lg font-bold">{inventoryRows.length}</span>
-            </div>
-            <div className="w-px h-8 bg-slate-700"></div>
-            <div className="flex flex-col text-green-400">
-              <span className="text-green-500/80 text-xs uppercase tracking-wider">Covered</span>
-              <span className="text-lg font-bold">{coveredCount}</span>
-            </div>
-            <div className="w-px h-8 bg-slate-700"></div>
-            <div className="flex flex-col text-red-400">
-              <span className="text-red-500/80 text-xs uppercase tracking-wider">In Deficit</span>
-              <span className="text-lg font-bold">{deficitCount}</span>
-            </div>
-          </div>
-          <div className="flex items-center">
-            <div className="flex flex-col items-end">
-              <span className="text-blue-300 text-xs uppercase tracking-wider">Total Surplus Available</span>
-              <span className="text-2xl font-black text-blue-400">{totalSurplus}</span>
-            </div>
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            labelBn="ইনভেন্টরি আইটেম"
+            labelEn="Products in Hub"
+            value={inventoryRows.length}
+            icon={<Package className="w-5 h-5" />}
+            accentColor="var(--nc-primary)"
+          />
+          <MetricCard
+            labelBn="চাহিদা পূরণ"
+            labelEn="Covered"
+            value={coveredCount}
+            icon={<CheckCircle2 className="w-5 h-5" />}
+            accentColor="var(--nc-success)"
+          />
+          <MetricCard
+            labelBn="ঘাটতি"
+            labelEn="In Deficit"
+            value={deficitCount}
+            icon={<AlertCircle className="w-5 h-5" />}
+            accentColor="var(--nc-warning)"
+          />
+          <MetricCard
+            labelBn="মোট উদ্বৃত্ত"
+            labelEn="Total Surplus Available"
+            value={totalSurplus}
+            icon={<Send className="w-5 h-5" />}
+            accentColor="var(--nc-info)"
+          />
         </div>
       )}
 

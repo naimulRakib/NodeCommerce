@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import SendStockModal from "./SendStockModal";
+import { MetricCard } from "@/components/ui/MetricCard";
 
 interface ResellerStockItem {
   id: string;
@@ -236,22 +237,28 @@ export default function LocalResellerMonitor() {
       <div className="mb-6 sm:mb-8">
         <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-4 sm:mb-6">Local Reseller Network</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-md p-4 sm:p-6 text-white flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-xs font-medium uppercase tracking-wider mb-1">Total Resellers</p>
-              <h3 className="text-3xl sm:text-4xl font-black">{resellers.length}</h3>
-            </div>
-            <div className="text-4xl sm:text-5xl opacity-20 flex-shrink-0">🏪</div>
-          </div>
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md p-4 sm:p-6 text-white flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-xs font-medium uppercase tracking-wider mb-1">Total Stock Deployed</p>
-              <h3 className="text-3xl sm:text-4xl font-black">
-                {resellers.reduce((total, reseller) => total + reseller.stock.reduce((st, item) => st + item.quantity, 0), 0)}
-              </h3>
-            </div>
-            <div className="text-4xl sm:text-5xl opacity-20 flex-shrink-0">📦</div>
-          </div>
+          <MetricCard
+            labelBn="লোকাল রিসেলার"
+            labelEn="Total Resellers"
+            value={resellers.length}
+            icon={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            }
+            accentColor="var(--nc-primary)"
+          />
+          <MetricCard
+            labelBn="মোট স্টক মোতায়েন"
+            labelEn="Total Stock Deployed"
+            value={resellers.reduce((total, reseller) => total + reseller.stock.reduce((st, item) => st + item.quantity, 0), 0)}
+            icon={
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            }
+            accentColor="var(--nc-info)"
+          />
         </div>
       </div>
 

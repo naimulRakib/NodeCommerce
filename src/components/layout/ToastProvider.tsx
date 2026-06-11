@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import styles from "../ui/Toast.module.css";
 
 /**
  * Lightweight global toast system.
@@ -49,14 +50,10 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const DEFAULT_DURATION_MS = 4000;
 
-/**
- * Picks a color scheme per toast kind. Kept as a small map so the markup
- * stays readable.
- */
 const KIND_STYLES: Record<ToastKind, string> = {
-  success: "bg-emerald-600",
-  error: "bg-red-600",
-  info: "bg-slate-800",
+  success: styles.toastSuccess,
+  error: styles.toastDanger,
+  info: styles.toastInfo,
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -113,20 +110,25 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div
         aria-live="polite"
         aria-atomic="true"
-        className="fixed bottom-6 right-6 z-60 flex flex-col-reverse gap-2 pointer-events-none"
+        className={styles.toastContainer}
       >
         {toasts.map((t) => (
           <div
             key={t.id}
             role="status"
-            className={`pointer-events-auto min-w-60 max-w-sm px-4 py-3 rounded-lg shadow-lg text-white font-medium text-sm flex items-start gap-3 ${KIND_STYLES[t.kind]}`}
+            className={`${styles.toast} ${KIND_STYLES[t.kind] || ""}`}
           >
-            <span className="flex-1 wrap-break-word">{t.message}</span>
+            <div className={styles.toastContent}>
+              <div className={styles.toastTitle}>
+                {t.kind === "success" ? "সফল" : t.kind === "error" ? "ত্রুটি" : "তথ্য"}
+              </div>
+              <div className={styles.toastMessage}>{t.message}</div>
+            </div>
             <button
               type="button"
               onClick={() => dismiss(t.id)}
               aria-label="Dismiss notification"
-              className="opacity-80 hover:opacity-100 transition-opacity text-white/90 hover:text-white"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', opacity: 0.6 }}
             >
               ×
             </button>

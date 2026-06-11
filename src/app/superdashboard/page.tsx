@@ -20,6 +20,7 @@ import SupplyChainControls from "@/components/superdashboard/SupplyChainControls
 import ShipmentPipelinePanel from "@/components/superdashboard/ShipmentPipelinePanel";
 import MultiProductPheromoneLayer from "@/components/superdashboard/MultiProductPheromoneLayer";
 import RunIntelligenceControl from "@/components/superdashboard/RunIntelligenceControl";
+import AgentStatusPanel from "@/components/superdashboard/AgentStatusPanel";
 
 interface NodeItem {
   id: string;
@@ -543,6 +544,7 @@ export default function SuperDashboardPage() {
             />
 
             <RunIntelligenceControl />
+            <AgentStatusPanel />
 
             <GlobalACOControl
               onJobComplete={(job) => {

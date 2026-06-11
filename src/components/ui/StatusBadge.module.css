@@ -1,0 +1,78 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--nc-radius-full);
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: var(--nc-font-bangla);
+}
+
+.badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.size-sm {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.size-md {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.size-lg {
+  padding: 4px 12px;
+  font-size: 14px;
+}
+
+.pending {
+  background: var(--nc-warning-light);
+  color: var(--nc-warning);
+}
+
+.success {
+  background: var(--nc-success-light);
+  color: var(--nc-success);
+}
+
+.danger {
+  background: var(--nc-danger-light);
+  color: var(--nc-danger);
+}
+
+.info {
+  background: var(--nc-info-light);
+  color: var(--nc-info);
+}
+
+.warning {
+  background: var(--nc-warning-light);
+  color: var(--nc-warning);
+}
+
+.critical {
+  background: var(--nc-danger-light);
+  color: var(--nc-danger);
+}
+
+.pulseAnimation::before {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulseAnimation::before {
+    animation: none;
+  }
+}
