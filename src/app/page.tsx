@@ -29,7 +29,8 @@ export default async function Home() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
-    prisma.profile.count(),
+    // Fix Q6: count only seller profiles, not all profiles
+    prisma.profile.count({ where: { role: "seller" } }),
   ]);
 
   const categories = Object.keys(CATEGORY_ICONS);
@@ -117,7 +118,7 @@ export default async function Home() {
 
           <div className="relative max-w-4xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-6 border border-white/30">
-              🇧🇩 Bangladesh&apos;s Local Marketplace
+              🇧🇩 বাংলাদেশের স্থানীয় মার্কেটপ্লেস · Bangladesh&apos;s Local Marketplace
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
               Shop Local.<br />
@@ -329,7 +330,7 @@ export default async function Home() {
               </div>
             </div>
             <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-              <p>© 2025 NodeCommerce. All rights reserved.</p>
+              <p>© 2026 NodeCommerce Bangladesh. All rights reserved.</p>
               <p>Made with ❤️ in Bangladesh</p>
             </div>
           </div>

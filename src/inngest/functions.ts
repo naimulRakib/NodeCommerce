@@ -26,17 +26,31 @@ export const runIntelligencePipeline = inngest.createFunction(
       return { upazillaStocks, demands };
     });
 
-    // 3. Execute LangGraph
+    // 3. Execute LangGraph (wrapped in try/catch — LangGraph errors should not crash the whole pipeline)
     const finalState = await step.run("execute-langgraph", async () => {
-      const initialState = {
-        stockSnapshot: upazillaStocks,
-        demands: demands,
-        criticalAlerts: [],
-        forecasts: [],
-        reorderActions: []
-      };
-      const graph = buildForecastingGraph();
-      return await graph.invoke(initialState);
+      try {
+        const initialState = {
+          stockSnapshot: upazillaStocks,
+          demands: demands,
+          criticalAlerts: [],
+          forecasts: [],
+          reorderActions: []
+        };
+        const graph = buildForecastingGraph();
+        return await graph.invoke(initialState);
+      } catch (err: any) {
+        console.error("[Inngest:execute-langgraph] LangGraph error:", err?.message ?? err);
+        // Return safe default state so the pipeline can continue
+        return {
+          stockSnapshot: upazillaStocks,
+          demands: demands,
+          criticalAlerts: [],
+          forecasts: [],
+          reorderActions: [],
+          restockRecommendations: [],
+          _error: err?.message ?? "LangGraph invocation failed",
+        };
+      }
     });
 
     // 4. Apply Database Mutations

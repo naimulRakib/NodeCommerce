@@ -20,9 +20,19 @@ export default function StatsSummary({ summary }: StatsSummaryProps) {
   } = summary;
 
   return (
-    <div className="flex flex-col gap-4">
+    // Force dark theme context so MetricCard CSS vars resolve to dark palette
+    <div data-theme="dark" className="flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
+        <span className="text-base">📊</span>
+        <div>
+          <div className="font-bold text-sm text-slate-100">নেটওয়ার্ক পরিসংখ্যান</div>
+          <div className="text-[10px] text-slate-500">Network Statistics</div>
+        </div>
+      </div>
+
       {/* 2x2 Grid for Reseller Types */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <MetricCard
           labelBn="জেলা"
           labelEn="Districts"

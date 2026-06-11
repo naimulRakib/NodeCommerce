@@ -637,6 +637,10 @@ export default function SuperDashboardPage() {
             {/* Shipment pipeline */}
             <div className="border-t border-slate-800" />
             <ShipmentPipelinePanel refreshKey={lastUpdated?.getTime() ?? 0} />
+
+            {/* Agent fleet status */}
+            <div className="border-t border-slate-800" />
+            <AgentStatusPanel />
           </div>
         </main>
       </div>
