@@ -75,3 +75,23 @@
   --nc-border-strong: #2A5045;
   --nc-primary-light: #1D3A30;
 }
+
+/* ─── Dashboard Panel Tokens ────────────────────────────── */
+:root {
+  --nc-panel-bg: rgba(15, 23, 42, 0.6);
+  --nc-panel-border: rgba(30, 41, 59, 0.8);
+  --nc-panel-header: #0F172A;
+  --nc-glow-primary: rgba(0, 106, 78, 0.35);
+  --nc-glow-violet: rgba(124, 58, 237, 0.35);
+  --nc-glow-amber: rgba(245, 158, 11, 0.3);
+}
+
+/* ─── Scrollbar Thin Utility ────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #1E293B transparent;
+}
+.scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #334155; }

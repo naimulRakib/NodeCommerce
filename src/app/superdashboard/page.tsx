@@ -22,6 +22,8 @@ import MultiProductPheromoneLayer from "@/components/superdashboard/MultiProduct
 import RunIntelligenceControl from "@/components/superdashboard/RunIntelligenceControl";
 import AgentStatusPanel from "@/components/superdashboard/AgentStatusPanel";
 import GrokThinkingTerminal from "@/components/superdashboard/GrokThinkingTerminal";
+import DemoRunButton from "@/components/superdashboard/DemoRunButton";
+import ACOFlowVisualizer from "@/components/superdashboard/ACOFlowVisualizer";
 
 interface NodeItem {
   id: string;
@@ -92,6 +94,10 @@ export default function SuperDashboardPage() {
 
   // Grok AI Terminal
   const [showGrokTerminal, setShowGrokTerminal] = useState<boolean>(false);
+
+  // ACO Flow Visualization
+  const [lastAcoResult, setLastAcoResult] = useState<any>(null);
+  const [acoRunning, setAcoRunning] = useState<boolean>(false);
 
   // ----------------------------------------------------
   // DATA FETCHING, JITTER, & SYNC
@@ -444,13 +450,13 @@ export default function SuperDashboardPage() {
       <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 z-20 shrink-0 select-none">
         {/* Left branding */}
         <div className="flex items-center gap-3">
-          <span className="text-2xl text-orange-500 font-bold">⬡</span>
+          <span className="text-2xl text-emerald-500 font-bold">🇧🇩</span>
           <div>
             <h1 className="text-sm sm:text-base font-extrabold text-slate-100 tracking-tight leading-none">
-              NodeCommerce
+              নোডকমার্স বাংলাদেশ
             </h1>
-            <p className="text-[10px] text-slate-450 tracking-wider uppercase font-semibold mt-0.5">
-              Supply Chain Map
+            <p className="text-[10px] text-slate-400 tracking-wider font-semibold mt-0.5">
+              সাপ্লাই চেইন কন্ট্রোল সেন্টার · Supply Chain Map
             </p>
           </div>
         </div>
@@ -540,28 +546,13 @@ export default function SuperDashboardPage() {
               />
             </MapErrorBoundary>
 
-            <ACOTriggerControl
-              onJobComplete={(job) => {
-                setAcoJobs(prev => [job, ...prev]);
-                setShowGrokTerminal(true);
-                fetchNodes();
-              }}
-            />
+            <MultiProductPheromoneLayer active={showPheromoneLayer} />
 
-            <RunIntelligenceControl />
-            <AgentStatusPanel />
-
-            <GlobalACOControl
-              onJobComplete={(job) => {
-                setAcoJobs(prev => [job, ...prev]);
-                setShowGrokTerminal(true);
-                fetchNodes();
-              }}
-            />
-
+            {/* Supply Chain Reset/Seed controls — keep for admin use */}
             <SupplyChainControls
               onReset={() => {
                 setAcoJobs([]);
+                setLastAcoResult(null);
                 setPendingApprovals([]);
                 setConservationViolations([]);
                 setTruckData([]);
@@ -569,43 +560,82 @@ export default function SuperDashboardPage() {
               }}
             />
 
-            <MultiProductPheromoneLayer active={showPheromoneLayer} />
-
             {/* Empty State Overlay */}
             {hasNoResults && (
               <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4">
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl text-center max-w-sm flex flex-col items-center gap-3">
                   <span className="text-4xl">🔎</span>
-                  <h4 className="text-base font-bold text-slate-100">No nodes match your filters</h4>
+                  <h4 className="text-base font-bold text-slate-100">ফিল্টারে কোনো নোড পাওয়া যায়নি</h4>
                   <p className="text-xs text-slate-400">
-                    Try adjusting your search query or selecting a different district/type combination.
+                    অনুসন্ধান পরিবর্তন করুন অথবা ভিন্ন জেলা বা ধরন বেছে নিন।
                   </p>
                   <button
                     onClick={handleClearFilters}
-                    className="mt-1 px-4 py-2 text-xs font-semibold text-white bg-orange-600 hover:bg-orange-500 rounded-xl transition-colors cursor-pointer shadow-lg shadow-orange-600/10"
+                    className="mt-1 px-4 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-600 rounded-xl transition-colors cursor-pointer shadow-lg"
                   >
-                    Clear Filters
+                    ফিল্টার মুছুন / Clear Filters
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Node Detail Side-Panel (Desktop width: 320px right pane, Mobile: 50vh bottom sheet) */}
+          {/* Node Detail Side-Panel */}
           <NodeDetailPanel
             node={selectedNode}
             onClose={handleDetailClose}
           />
-          
-          <div className="hidden xl:block">
+
+          {/* ── ACO CONTROL PANEL (right side, always visible on xl+) ── */}
+          <div className="hidden xl:flex flex-col w-[340px] h-full border-l border-slate-800 bg-slate-900/60 backdrop-blur-sm overflow-y-auto shrink-0 p-4 gap-4 scrollbar-thin">
+            {/* Bengali panel header */}
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
+              <span className="text-lg">🐜</span>
+              <div>
+                <div className="font-bold text-sm text-slate-100">ACO কন্ট্রোল প্যানেল</div>
+                <div className="text-[10px] text-slate-500">Ant Colony Optimization Control</div>
+              </div>
+            </div>
+
+            {/* Single demo run button */}
+            <DemoRunButton
+              onGrokStart={() => setShowGrokTerminal(true)}
+              onJobComplete={(result) => {
+                setLastAcoResult(result);
+                setAcoRunning(false);
+                setAcoJobs(prev => [result, ...prev]);
+                fetchNodes();
+              }}
+              onError={() => setAcoRunning(false)}
+            />
+
+            {/* 4-phase flow visualization */}
+            <ACOFlowVisualizer
+              result={lastAcoResult?.summary ? {
+                phase1: lastAcoResult.summary.phase1,
+                phase2: lastAcoResult.summary.phase2,
+                phase3: lastAcoResult.summary.phase3,
+                phase4: lastAcoResult.summary.phase4,
+                conservationCheck: lastAcoResult.summary.conservationCheck,
+                productScope: lastAcoResult.productScope,
+                totalSupply: lastAcoResult.totalSupply,
+              } : null}
+              isRunning={acoRunning}
+              onReset={() => { setLastAcoResult(null); setAcoRunning(false); }}
+            />
+
+            {/* Divider */}
+            <div className="border-t border-slate-800" />
+
+            {/* Pipeline status */}
             <ACOPipelinePanel
               jobs={acoJobs}
               pendingApprovals={pendingApprovals}
               onApprovalAction={fetchNodes}
             />
-          </div>
 
-          <div className="hidden xl:block mt-4">
+            {/* Shipment pipeline */}
+            <div className="border-t border-slate-800" />
             <ShipmentPipelinePanel refreshKey={lastUpdated?.getTime() ?? 0} />
           </div>
         </main>
