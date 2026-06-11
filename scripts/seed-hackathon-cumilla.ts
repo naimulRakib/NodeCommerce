@@ -478,7 +478,24 @@ async function main() {
     }
   });
 
-  console.log("   ✅ 3 B2C Orders and 1 Stock Order seeded");
+  // Upazilla Hub Stock (So they have something to manage/dispatch)
+  await prisma.upazillaStockItem.create({
+    data: {
+      upazillaResellerId: upazillaId,
+      productName: riceProduct.customName,
+      quantity: 500, // They have 500 units of rice from previous deliveries
+    }
+  });
+
+  await prisma.upazillaStockItem.create({
+    data: {
+      upazillaResellerId: upazillaId,
+      productName: keyboardProduct.customName,
+      quantity: 5, // Just 5 keyboards left
+    }
+  });
+
+  console.log("   ✅ 3 B2C Orders, 1 Stock Order, and 2 Upazilla Stock items seeded");
 
   // ────────────────────────────────────────────────────────────────────────
   // DONE
