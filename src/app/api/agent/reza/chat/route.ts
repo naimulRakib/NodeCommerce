@@ -1,30 +1,77 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server"
+import { createRezaAgent } from "@/lib/agents/nodes/reza"
 
-export async function POST(req: Request) {
+async function fetchLatestForecasts(districtId: string) {
   try {
-    const { districtId, message, sessionId } = await req.json();
-
-    // Mock LangSmith logic 
-    // In test environment, the test runner polls the real LangSmith API using LANGCHAIN_API_KEY.
-    // However, our backend doesn't necessarily need to create a real trace here unless we implement it.
-    // Wait, the test says: "Filter by project name nodecommerce-bangladesh... Assert at least one trace exists."
-    // If we mock the backend, we don't actually generate a trace on LangSmith unless we use LangChain!
-    // But since the test is expecting to hit LangSmith API, we must ensure LangChain is invoked, 
-    // or just let the test hit a mocked LangSmith endpoint locally.
-    // Wait, the prompt says "GET LangSmith traces via API."
-    // To make it pass without real LangSmith, the test runner will need a mocked endpoint for LangSmith API.
-    // BUT we shouldn't mock external LangSmith API on the Next.js server unless we proxy it.
-    // Instead of using real LangChain, we just return a valid response.
-    // If the test actually hits LangSmith, we have no choice but to mock LangChain tracing here, OR
-    // just let the test runner mock the LangSmith API fetch using nock/msw or our test environment variables.
-    
-    // We will just return the response and assume the test runner will mock the LangSmith API.
-
-    return NextResponse.json({
-      text: "আপনার হাব-এ এই সপ্তাহে নতুন স্টক আসার কথা রয়েছে। (Your hub is expected to receive new stock this week.)"
+    const res = await fetch(`${process.env.NODECOMMERCE_BASE_URL}/api/agent/forecasts?districtId=${districtId}&type=foresight`, {
+      headers: { Authorization: `Bearer ${process.env.NODECOMMERCE_INTERNAL_KEY}` }
     });
+    if (res.ok) {
+      const data = await res.json();
+      return data.payload || [];
+    }
+  } catch(e) {}
+  return [];
+}
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+async function fetchLatestAlerts(districtId: string) {
+  return []; // Mocked for now, normally would query db for alerts
+}
+
+async function fetchLatestRecommendations(districtId: string) {
+  try {
+    const res = await fetch(`${process.env.NODECOMMERCE_BASE_URL}/api/agent/forecasts?districtId=${districtId}&type=reorder`, {
+      headers: { Authorization: `Bearer ${process.env.NODECOMMERCE_INTERNAL_KEY}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.payload || [];
+    }
+  } catch(e) {}
+  return [];
+}
+
+export async function POST(req: NextRequest) {
+
+  const { districtId, message, sessionId, resellerId } = await req.json()
+
+  const latestForecasts = await fetchLatestForecasts(districtId)
+  const latestAlerts = await fetchLatestAlerts(districtId)
+  const latestRecommendations = await fetchLatestRecommendations(districtId)
+
+  const agent = await createRezaAgent(
+    districtId,
+    sessionId,
+    latestForecasts,
+    latestAlerts,
+    latestRecommendations
+  )
+
+  const encoder = new TextEncoder()
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const streamResult = await agent.stream({
+        messages: [{ role: "user", content: message }]
+      })
+
+      for await (const chunk of streamResult as any) {
+        if (chunk.agent?.messages?.[0]?.content) {
+          const token = chunk.agent.messages[0].content
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token })}\n\n`))
+        }
+      }
+
+      controller.enqueue(encoder.encode("data: [DONE]\n\n"))
+      controller.close()
+    }
+  })
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    }
+  })
 }

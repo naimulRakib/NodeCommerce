@@ -4,24 +4,6 @@ import { createClient } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
 
 export async function requireAuth() {
-  const testId = (globalThis as any).__TEST_USER_ID__;
-  if (testId === "UNAUTH") {
-    return { 
-      user: null, 
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) 
-    };
-  }
-  if (testId) {
-    return { user: { id: testId }, error: null };
-  }
-
-  // Dev Bypass
-  const cookieStore = await cookies();
-  const bypassId = cookieStore.get("bypass_auth_id")?.value;
-  if (bypassId) {
-    return { user: { id: bypassId, email: "dev@bypass.com" }, error: null };
-  }
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

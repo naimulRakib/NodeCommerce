@@ -93,6 +93,7 @@ model BuyerProfile {
   cartItems  CartItem[]
   behaviours BuyerBehaviour[]
 
+  @@index([lat, lng])
   @@map("buyer_profiles")
 }
 
@@ -185,6 +186,8 @@ model LocalReseller {
   stock             ResellerStockItem[]
   receivedTransfers StockTransfer[]
   demands           LocalDemand[]
+
+  @@index([lat, lng])
 }
 
 model ResellerStockItem {
@@ -215,6 +218,8 @@ model UpazillaReseller {
   id                   String                   @id
   // Supabase auth UID
   email                String                   @unique
+  lat                  Float?
+  lng                  Float?
   city                 String
   upazilla             String
   createdAt            DateTime                 @default(now())
@@ -223,9 +228,10 @@ model UpazillaReseller {
   receivedFromDistrict DistrictTransfer[]
   demands              UpazillaDemand[]
   stockOrders          StockOrderNegotiation[]
-  availableStock       UpazillaAvailableStock[]
+  availableStocks      UpazillaAvailableStock[]
 
   @@unique([city, upazilla])
+  @@index([lat, lng])
 }
 
 model UpazillaStockItem {
@@ -267,6 +273,8 @@ model DistrictReseller {
   // Supabase auth UID
   email                     String                     @unique
   district                  String                     @unique
+  lat                       Float?
+  lng                       Float?
   // one reseller per district
   createdAt                 DateTime                   @default(now())
   inventory                 DistrictStockItem[]
@@ -276,6 +284,8 @@ model DistrictReseller {
   receivedNationalTransfers NationalTransfer[]         @relation("ReceivedNationalTransfers")
   acoSourceOpportunities    InterDistrictOpportunity[] @relation("ACOSource")
   acoTargetOpportunities    InterDistrictOpportunity[] @relation("ACOTarget")
+
+  @@index([lat, lng])
 }
 
 model DistrictStockItem {
@@ -703,41 +713,41 @@ model ShipmentLineItem {
 // (which is single-product-per-job). Triggered when a seller /
 // upazilla / district signals surplus for many products at once.
 model ACOGlobalJob {
-  id                String    @id @default(cuid())
-  triggeredBy       String
-  triggerType       String    @default("manual")
+  id                  String    @id @default(cuid())
+  triggeredBy         String
+  triggerType         String    @default("manual")
   // "manual" | "automatic" | "scheduled"
-  sourceDistrict    String?
+  sourceDistrict      String?
   // originating district (own district first)
-  productScope      String[]
+  productScope        String[]
   // productNames being routed in this run
-  totalSupply       Json
+  totalSupply         Json
   // { productName: totalAvailableQty } map
-  totalDemand       Json
+  totalDemand         Json
   // { productName: totalPendingDemandQty } map
   // products with zero demand are dropped from scope
-  status            String    @default("planning")
+  status              String    @default("planning")
   // planning | phase1_ready | phase2_ready
   // | phase3_ready | phase4_dispatched
   // | completed | completed_pending_approval
   // | failed | cancelled
-  phase1Summary     Json      @default("{}")
+  phase1Summary       Json      @default("{}")
   // { [upazillaResellerId]: { productName: qty } }
-  phase2Summary     Json      @default("{}")
+  phase2Summary       Json      @default("{}")
   // { [districtResellerId]: { productName: qty } }
-  phase3Summary     Json      @default("{}")
+  phase3Summary       Json      @default("{}")
   // { [shipmentId]: summary } inter-district shipment plans
-  phase4Summary     Json      @default("{}")
+  phase4Summary       Json      @default("{}")
   // { [shipmentId]: { [upazillaResellerId]: { productName: qty } } }
-  conservationCheck Json?
+  conservationCheck   Json?
   // { balanced: bool, perProduct: { productName: { expected, actual } } }
-  startedAt         DateTime  @default(now())
-  completedAt       DateTime?
+  startedAt           DateTime  @default(now())
+  completedAt         DateTime?
   negotiationDeadline DateTime?
-  errorMessage      String?
+  errorMessage        String?
 
-  shipments ACOShipment[]
-  trucks    Truck[]
+  shipments          ACOShipment[]
+  trucks             Truck[]
   sellerNegotiations SellerACONegotiation[]
 
   @@index([status])
@@ -798,7 +808,7 @@ model ACOShipment {
   driverName       String?
   driverPhone      String?
   licensePlate     String?
-  
+
   // Risk and Dispatch Fields
   historicalDelayRate Float?
   seasonalRiskFlag    String?
@@ -1038,7 +1048,7 @@ model TestRunResult {
   testRun      TestRun  @relation(fields: [testRunId], references: [id], onDelete: Cascade)
   testCaseId   String
   name         String
-  status       String   // PASS, FAIL, TIMEOUT, SKIPPED
+  status       String // PASS, FAIL, TIMEOUT, SKIPPED
   durationMs   Int      @default(0)
   errorMessage String?
   runAt        DateTime @default(now())
@@ -1059,42 +1069,42 @@ model MockUiPathJob {
 }
 
 model MockActionCenterTask {
-  id           String   @id @default(cuid())
-  assignedTo   String
-  type         String?
-  title        String
-  priority     String   @default("High")
-  deadline     DateTime?
-  shipmentId   String?
-  status       String   @default("Pending")
-  createdAt    DateTime @default(now())
+  id         String    @id @default(cuid())
+  assignedTo String
+  type       String?
+  title      String
+  priority   String    @default("High")
+  deadline   DateTime?
+  shipmentId String?
+  status     String    @default("Pending")
+  createdAt  DateTime  @default(now())
 }
 
 model MockNotificationLog {
-  id           String   @id @default(cuid())
-  type         String   // "whatsapp", "sms", "email"
-  recipient    String
-  subject      String?
-  body         String
-  shipmentId   String?
-  createdAt    DateTime @default(now())
+  id         String   @id @default(cuid())
+  type       String // "whatsapp", "sms", "email"
+  recipient  String
+  subject    String?
+  body       String
+  shipmentId String?
+  createdAt  DateTime @default(now())
 }
 
 model MockThirdPartyAgencyLog {
-  id           String   @id @default(cuid())
-  agencyName   String
-  shipmentId   String
-  status       String   // "visited", "confirmed", "rejected"
-  quoteAmount  Float?
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  agencyName  String
+  shipmentId  String
+  status      String // "visited", "confirmed", "rejected"
+  quoteAmount Float?
+  createdAt   DateTime @default(now())
 }
 
 model MockDocument {
-  id           String   @id @default(cuid())
-  shipmentId   String
-  filename     String
-  content      String   // Simulated PDF text
-  createdAt    DateTime @default(now())
+  id         String   @id @default(cuid())
+  shipmentId String
+  filename   String
+  content    String // Simulated PDF text
+  createdAt  DateTime @default(now())
 }
 
 model ProvaRecommendation {
@@ -1105,6 +1115,6 @@ model ProvaRecommendation {
   baseDaysRemaining     Float
   seasonalMultiplier    Float
   adjustedDaysRemaining Float
-  status                String   // "WARNING", "WATCH", "OK"
+  status                String // "WARNING", "WATCH", "OK"
   createdAt             DateTime @default(now())
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth, requireRole } from "@/lib/auth-utils";
 import { prisma } from "@/lib/prisma";
 import { trackBehaviour } from "@/lib/behaviour";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
     try {
@@ -10,10 +11,15 @@ export async function POST(req: Request) {
         const { hasRole, error: roleError } = await requireRole(user.id, "buyer");
         if (roleError) return roleError;
 
+        // Rate Limit: 5 orders per minute per user
+        const { success } = await rateLimit(`order:${user.id}`, 5, 60 * 1000);
+        if (!success) {
+            return NextResponse.json({ error: "Rate limit exceeded. Please try again later." }, { status: 429 });
+        }
 
     const buyerId = user.id;
     const body = await req.json();
-    const { buyerNote } = body; // Delivery address comes from buyer profile
+    const { buyerNote, paymentMethod } = body; // Payment method: "COD" or "WALLET"
 
     // 1. Fetch Cart
     const cartItems = await prisma.cartItem.findMany({
@@ -98,6 +104,17 @@ export async function POST(req: Request) {
                     throw new Error(`Insufficient stock for product ID: ${item.sellerProductId} during checkout.`);
                 }
             }));
+        }
+
+        // Handle payment
+        if (paymentMethod === "WALLET") {
+            if (buyer.walletBalance < grandTotalAmount) {
+                throw new Error("Insufficient wallet balance");
+            }
+            await tx.buyerProfile.update({
+                where: { id: buyerId },
+                data: { walletBalance: { decrement: grandTotalAmount } }
+            });
         }
 
         // Clear Cart

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/agent/forecast/run-all-districts",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

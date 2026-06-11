@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase-server";
 import { trackBehaviour } from "@/lib/behaviour";
+import { redis } from "@/lib/redis";
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -108,6 +109,32 @@ export async function GET(request: Request) {
         delete where.AND;
     }
 
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const buyerId = user?.id || null;
+    let buyerLat = 23.8;
+    let buyerLng = 90.4;
+
+    if (buyerId) {
+        const bp = await prisma.buyerProfile.findUnique({ where: { id: buyerId } });
+        if (bp?.lat && bp?.lng) {
+            buyerLat = bp.lat;
+            buyerLng = bp.lng;
+        }
+    }
+
+    // Try Cache First
+    const cacheKey = `search:${q}:${category}:${upazilla}:${minPrice}:${maxPrice}:${page}:${pageSize}:${buyerLat}:${buyerLng}`;
+    try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+            trackBehaviour(buyerId, "search", { query: q, category, cached: true });
+            return NextResponse.json(JSON.parse(cached));
+        }
+    } catch (e) {
+        console.warn("Redis cache read failed", e);
+    }
+
     const [total, sellerProducts] = await Promise.all([
         prisma.sellerProduct.count({ where }),
         prisma.sellerProduct.findMany({
@@ -133,20 +160,6 @@ export async function GET(request: Request) {
         stock: sp.stock,
         seller: sp.seller
     }));
-
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    const buyerId = user?.id || null;
-    let buyerLat = 23.8;
-    let buyerLng = 90.4;
-
-    if (buyerId) {
-        const bp = await prisma.buyerProfile.findUnique({ where: { id: buyerId } });
-        if (bp?.lat && bp?.lng) {
-            buyerLat = bp.lat;
-            buyerLng = bp.lng;
-        }
-    }
 
     // Find nearest Local Reseller stock for each product
     function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -189,10 +202,19 @@ export async function GET(request: Request) {
     // Fire and forget
     trackBehaviour(buyerId, "search", { query: q, category, resultsCount: total });
 
-    return NextResponse.json({
+    const responseData = {
         products: productsWithNearest,
         total,
         page,
         totalPages: Math.ceil(total / pageSize)
-    });
+    };
+
+    // Cache the response for 2 minutes (120 seconds)
+    try {
+        await redis.setex(cacheKey, 120, JSON.stringify(responseData));
+    } catch (e) {
+        console.warn("Redis cache write failed", e);
+    }
+
+    return NextResponse.json(responseData);
 }

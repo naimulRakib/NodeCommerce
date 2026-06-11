@@ -6,6 +6,7 @@ import { CATEGORIES } from "@/data/categories";
 import SearchBar from "@/components/buyer/SearchBar";
 import ProductCard from "@/components/buyer/ProductCard";
 import { useCart } from "@/lib/cartContext";
+import ProductSearchPanel from "@/components/delivery/ProductSearchPanel";
 
 export default function BuyerSearchPage() {
   const [query, setQuery] = useState("");
@@ -122,6 +123,14 @@ export default function BuyerSearchPage() {
           </div>
 
           <div className="space-y-6">
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Local Delivery</h3>
+              <p className="text-xs text-gray-500 mb-2">Search local resellers near you for instant delivery.</p>
+              <ProductSearchPanel />
+            </div>
+            
+            <hr className="my-6 border-gray-200" />
+            
             <div>
               <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Category</h3>
               <div className="space-y-2 max-h-48 overflow-y-auto">
