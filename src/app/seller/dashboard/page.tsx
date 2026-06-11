@@ -9,6 +9,7 @@ import ProfileSection from "@/components/seller/dashboard/ProfileSection";
 import ProductSearch from "@/components/seller/dashboard/AddProduct/ProductSearch";
 import CustomProductForm from "@/components/seller/dashboard/AddProduct/CustomProductForm";
 import dynamic from "next/dynamic";
+import GrokAssistantPanel from "@/components/seller/dashboard/GrokAssistantPanel";
 
 const QRResult = dynamic(
   () => import("@/components/seller/dashboard/AddProduct/QRResult"),
@@ -513,7 +514,16 @@ export default function SellerDashboardPage() {
             </div>
           )}
 
-          {activeTab === "inventory" && <InventoryTable />}
+          {activeTab === "inventory" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <InventoryTable />
+              </div>
+              <div className="lg:col-span-1">
+                <GrokAssistantPanel />
+              </div>
+            </div>
+          )}
           {activeTab === "profile" && <ProfileSection />}
           {activeTab === "add-product" && renderAddProductFlow()}
           {activeTab === "orders" && <OrdersTab />}
