@@ -54,6 +54,24 @@ async function main() {
   }
   console.log(`  ✅ DistrictDemand reset: ${distDemands.length} demands → active/unfulfilled`);
 
+  // 5. Fix seller profile (Supabase auth trigger creates empty profile)
+  const sellerProfiles = await prisma.profile.findMany({ where: { type: "seller" } });
+  for (const p of sellerProfiles) {
+    if (!p.city || !p.upazilla || p.lat === 0) {
+      await prisma.profile.update({
+        where: { id: p.id },
+        data: {
+          city: "Comilla",
+          upazilla: "Burichang",
+          storeName: "বুড়িচং ফ্রেশ ফার্ম",
+          lat: 23.526,
+          lng: 91.154,
+        },
+      });
+      console.log(`  ✅ Seller profile fixed: ${p.id.slice(0,8)}... → Comilla/Burichang`);
+    }
+  }
+
   // 5. Verify
   const products = await prisma.sellerProduct.findMany({ select: { customName: true, stock: true, globalProduct: { select: { name: true } } } });
   const upDemands = await prisma.upazillaDemand.findMany({ select: { productName: true, demandQuantity: true, fulfilledQuantity: true, status: true } });

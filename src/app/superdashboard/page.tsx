@@ -7,7 +7,6 @@ import SearchFilter from "@/components/superdashboard/SearchFilter";
 import NodeDetailPanel from "@/components/superdashboard/NodeDetailPanel";
 import MapErrorBoundary from "@/components/superdashboard/MapErrorBoundary";
 import dynamic from "next/dynamic";
-import DeliveryManifestModal from "@/components/superdashboard/DeliveryManifestModal";
 import type { TruckRoute } from "@/components/superdashboard/ACOTruckLayer";
 
 const MapWrapper = dynamic(
@@ -104,12 +103,10 @@ export default function SuperDashboardPage() {
   // ── ACO Truck Animation State ──────────────────────────────────────────
   /** All resolved shipment routes for the current ACO run */
   const [acoRoutes, setAcoRoutes] = useState<TruckRoute[]>([]);
-  /** Queue of routes waiting to show manifest modal */
-  const arrivedQueueRef = useRef<TruckRoute[]>([]);
-  /** Currently shown manifest modal */
-  const [manifestRoute, setManifestRoute] = useState<TruckRoute | null>(null);
-  /** Tracks which phases have been confirmed (to avoid duplicate modals) */
-  const confirmedPhasesRef = useRef<Set<number>>(new Set());
+  /** Non-blocking arrival toast notifications */
+  const [arrivedToasts, setArrivedToasts] = useState<TruckRoute[]>([]);
+  /** Tracks which shipment IDs have shown toasts */
+  const shownToastsRef = useRef<Set<string>>(new Set());
 
   /** Fetch shipment routes after an ACO job completes */
   const fetchAndAnimateShipments = useCallback(async (jobId: string) => {
@@ -119,30 +116,27 @@ export default function SuperDashboardPage() {
       const data = await res.json();
       const routes: TruckRoute[] = data.shipments ?? [];
       if (routes.length === 0) return;
-      // Reset confirmation tracking
-      confirmedPhasesRef.current = new Set();
-      arrivedQueueRef.current = [];
+      shownToastsRef.current = new Set();
+      setArrivedToasts([]);
       setAcoRoutes(routes);
     } catch (err) {
       console.warn("[fetchAndAnimateShipments]", err);
     }
   }, []);
 
-  /** Called by ACOTruckLayer when a truck finishes its animation */
+  /** Called by ACOTruckLayer when a truck finishes its animation — non-blocking! */
   const handleTruckArrived = useCallback((route: TruckRoute) => {
-    // Only show one modal per phase
-    if (confirmedPhasesRef.current.has(route.phase)) return;
-    setManifestRoute(route);
-  }, []);
-
-  /** Called when user clicks "✅ গ্রহণ নিশ্চিত করুন" in the manifest modal */
-  const handleManifestConfirm = useCallback(() => {
-    if (!manifestRoute) return;
-    confirmedPhasesRef.current.add(manifestRoute.phase);
-    setManifestRoute(null);
-    // Refresh dashboard data after confirmation
+    if (shownToastsRef.current.has(route.id)) return;
+    shownToastsRef.current.add(route.id);
+    // Add toast notification
+    setArrivedToasts(prev => [...prev, route]);
+    // Auto-dismiss after 6 seconds
+    setTimeout(() => {
+      setArrivedToasts(prev => prev.filter(t => t.id !== route.id));
+    }, 6000);
+    // Auto-refresh data after all trucks arrive
     fetchNodes();
-  }, [manifestRoute]);
+  }, []);
 
 
   // ----------------------------------------------------
@@ -706,13 +700,75 @@ export default function SuperDashboardPage() {
         onClose={() => setShowGrokTerminal(false)}
       />
 
-      {/* UiPath Delivery Manifest Modal — shown when a truck arrives */}
-      {manifestRoute && (
-        <DeliveryManifestModal
-          route={manifestRoute}
-          onConfirm={handleManifestConfirm}
-          onClose={() => setManifestRoute(null)}
-        />
+      {/* ── Non-blocking Arrival Toast Notifications ───────────────── */}
+      {arrivedToasts.length > 0 && (
+        <div className="fixed bottom-20 right-4 z-[9999] flex flex-col gap-2 max-w-sm pointer-events-auto">
+          {arrivedToasts.map((toast) => {
+            const phaseColors: Record<number, string> = { 1: "#F59E0B", 2: "#3B82F6", 3: "#8B5CF6", 4: "#14B8A6" };
+            const phaseIcons: Record<number, string> = { 1: "🏘️", 2: "🏛️", 3: "🌐", 4: "✅" };
+            const color = phaseColors[toast.phase] ?? "#6B7280";
+            const icon = phaseIcons[toast.phase] ?? "📦";
+            return (
+              <div
+                key={toast.id}
+                className="rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-right duration-500"
+                style={{ background: "#0f172a", border: `1px solid ${color}50` }}
+              >
+                {/* Toast header */}
+                <div className="px-4 py-2.5 flex items-center gap-2.5" style={{ background: `${color}15`, borderBottom: `1px solid ${color}25` }}>
+                  <span className="text-lg">{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-white">🚛 ট্রাক পৌঁছেছে!</div>
+                    <div className="text-[10px] text-slate-400">ধাপ {toast.phase} — {toast.totalQuantity} ইউনিট</div>
+                  </div>
+                  <button
+                    onClick={() => setArrivedToasts(prev => prev.filter(t => t.id !== toast.id))}
+                    className="text-slate-500 hover:text-white text-xs cursor-pointer"
+                  >✕</button>
+                </div>
+                {/* Toast body */}
+                <div className="px-4 py-2 flex items-center gap-2 text-xs">
+                  <span className="text-slate-300 truncate">{toast.fromName}</span>
+                  <span style={{ color }}>→</span>
+                  <span className="text-white font-semibold truncate">{toast.toName}</span>
+                </div>
+                {/* Product list */}
+                {toast.products && toast.products.length > 0 && (
+                  <div className="px-4 pb-2 flex flex-wrap gap-1">
+                    {toast.products.map((p, i) => (
+                      <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: `${color}20`, color }}>
+                        {p.name}: {p.qty ?? 0}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* UiPath badge */}
+                <div className="px-4 pb-2.5 flex items-center gap-1.5">
+                  <span className="text-[10px]">🤖</span>
+                  <span className="text-[10px] text-indigo-400">UiPath মেনিফেস্ট তৈরি হয়েছে</span>
+                  <span className="text-emerald-400 text-[10px]">✅</span>
+                </div>
+                {/* Progress bar that shrinks over 6s */}
+                <div className="h-0.5 w-full" style={{ background: `${color}30` }}>
+                  <div
+                    className="h-full"
+                    style={{
+                      background: color,
+                      animation: "shrinkBar 6s linear forwards",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          {/* CSS for shrink animation */}
+          <style>{`
+            @keyframes shrinkBar {
+              from { width: 100%; }
+              to { width: 0%; }
+            }
+          `}</style>
+        </div>
       )}
 
       {/* 3. MOBILE FLOATING ACTION & BOTTOM DRAWER */}
