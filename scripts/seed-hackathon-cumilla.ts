@@ -133,9 +133,22 @@ async function main() {
   console.log("\n4️⃣  Creating Seller (Burichang)...");
   const sellerEmail = "seller.burichang@demo.com";
   const sellerId = await createAuthUser(sellerEmail);
-  await prisma.profile.create({
-    data: {
+  await prisma.profile.upsert({
+    where: { id: sellerId },
+    create: {
       id: sellerId,
+      type: "seller",
+      username: "burichang_fresh",
+      storeName: "বুড়িচং ফ্রেশ ফার্ম",
+      fullName: "Hasan Ali",
+      phone: "01812345678",
+      city: "Comilla",
+      upazilla: "Burichang",
+      sellerCode: "SEL-BRC1",
+      lat: COORDS.burichang_seller.lat,
+      lng: COORDS.burichang_seller.lng,
+    },
+    update: {
       type: "seller",
       username: "burichang_fresh",
       storeName: "বুড়িচং ফ্রেশ ফার্ম",

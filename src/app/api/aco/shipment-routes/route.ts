@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
 
     const shipments = await prisma.aCOShipment.findMany({
       where: { jobId },
-      include: { job: { select: { sourceDistrict: true } } },
+      include: {
+        job: { select: { sourceDistrict: true } },
+        lineItems: { select: { productName: true, allocatedQty: true } },
+      },
       orderBy: [{ phase: "asc" }, { createdAt: "asc" }],
     });
 
@@ -39,8 +42,14 @@ export async function GET(req: NextRequest) {
         const seller = sellerMap.get(s.fromId);
         if (seller) { fromLat = seller.lat; fromLng = seller.lng; fromLabel = seller.storeName || seller.city; }
       } else if (s.fromType === "district_hub" || s.fromType === "district") {
-        const dist = districtMap.get(s.fromId);
-        if (dist) { fromLat = dist.lat ?? 23.685; fromLng = dist.lng ?? 90.356; fromLabel = dist.district; }
+        // Phase 2 fromId could be an upazilla reseller ID (surplus from hub)
+        const uz = upazillaMap.get(s.fromId);
+        if (uz) {
+          fromLat = uz.lat ?? 23.685; fromLng = uz.lng ?? 90.356; fromLabel = `${uz.upazilla} Hub`;
+        } else {
+          const dist = districtMap.get(s.fromId);
+          if (dist) { fromLat = dist.lat ?? 23.685; fromLng = dist.lng ?? 90.356; fromLabel = dist.district; }
+        }
       }
 
       // Resolve to-node coords
@@ -53,6 +62,12 @@ export async function GET(req: NextRequest) {
         const dist = districtMap.get(s.toId);
         if (dist) { toLat = dist.lat ?? 23.685; toLng = dist.lng ?? 90.356; toLabel = `${dist.district} District Hub`; }
       }
+
+      // Map lineItems → products for the frontend
+      const products = (s.lineItems ?? []).map((li) => ({
+        name: li.productName,
+        qty: li.allocatedQty,
+      }));
 
       return {
         id: s.id,
@@ -67,7 +82,7 @@ export async function GET(req: NextRequest) {
         toType: s.toType,
         totalQuantity: s.totalQuantity,
         status: s.status,
-        products: (s as any).items ?? [],
+        products,
       };
     });
 

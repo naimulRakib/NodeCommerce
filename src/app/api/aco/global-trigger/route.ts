@@ -48,7 +48,9 @@ import {
   ProductSupply,
   UpazillaDemandEntry,
   DistrictDemandEntry,
+  ShipmentPlan,
 } from "@/lib/aco-multi-engine";
+import { haversineKm } from "@/lib/aco-engine";
 import {
   getDistrictCoords,
   getUpazillaCoords,
@@ -422,7 +424,7 @@ export async function POST(req: Request) {
     // =========================================================
     // 3. RUN PHASES
     // =========================================================
-    // Phase 1
+    // Phase 1: Seller → Own Upazilla
     const phase1 = planPhase1({
       supplies,
       upazillaDemands,
@@ -432,21 +434,62 @@ export async function POST(req: Request) {
       },
     });
 
-    // Build supplies for Phase 2: subtract Phase 1 origin
-    // delta from each supply's available.
-    const phase1OriginByProduct = new Map<
-      string,
-      Map<string, number>
-    >(); // sellerId -> productName -> qty
-    for (const ship of phase1.shipments) {
-      for (const li of ship.lineItems) {
-        if (!phase1OriginByProduct.has(ship.fromId)) {
-          phase1OriginByProduct.set(ship.fromId, new Map());
-        }
-        phase1OriginByProduct
-          .get(ship.fromId)!
-          .set(li.productName, li.allocatedQty);
+    // ── FIX: Phase 1 engine returns negotiations[], not shipments[].
+    // For the demo, auto-accept all negotiations and create real
+    // Phase 1 shipments so trucks animate and stock actually moves.
+    const phase1Shipments: ShipmentPlan[] = [];
+    for (const nego of (phase1.negotiations ?? [])) {
+      // Find the matching supply to get coords
+      const supply = supplies.find(
+        (s) => s.sellerId === nego.sellerId && s.productName === nego.productName
+      );
+      if (!supply) continue;
+      const ownUpazillaId = (supply as any).ownUpazillaResellerId;
+      if (!ownUpazillaId) continue;
+
+      const originCoords = { lat: supply.lat ?? 23.46, lng: supply.lng ?? 91.18 };
+      const destDemand = upazillaDemands.find(
+        (d) => d.upazillaResellerId === ownUpazillaId && d.productName.toLowerCase() === nego.productName.toLowerCase()
+      );
+      const destCoords = destDemand ? { lat: destDemand.lat, lng: destDemand.lng } : originCoords;
+      const distKm = haversineKm(originCoords.lat, originCoords.lng, destCoords.lat, destCoords.lng);
+
+      phase1Shipments.push({
+        phase: 1,
+        fromType: "seller",
+        fromId: nego.sellerId,
+        fromName: (supply as any).sellerName ?? supply.district + " Seller",
+        toType: "upazilla",
+        toId: ownUpazillaId,
+        toName: supply.upazilla + " Hub",
+        distanceKm: distKm || 0.5,
+        overallAcoScore: 5.0,
+        totalQuantity: nego.requestedQty,
+        lineItems: [{
+          productName: nego.productName,
+          productCode: nego.productCode,
+          sellerProductId: nego.sellerProductId,
+          allocatedQty: nego.requestedQty,
+          acoScore: 5.0,
+          distanceKm: distKm || 0.5,
+          demandAtTime: destDemand?.effectiveDeficit ?? nego.requestedQty,
+          pheromoneScore: destDemand?.pheromoneScore ?? 1.0,
+          allocationReason: "local_demand" as const,
+        }],
+      });
+    }
+
+    // Build supplies for Phase 2: subtract Phase 1 fills.
+    // Use the negotiations' requestedQty as the amount consumed.
+    const phase1OriginByProduct = new Map<string, Map<string, number>>();
+    for (const nego of (phase1.negotiations ?? [])) {
+      if (!phase1OriginByProduct.has(nego.sellerId)) {
+        phase1OriginByProduct.set(nego.sellerId, new Map());
       }
+      phase1OriginByProduct.get(nego.sellerId)!.set(
+        nego.productName,
+        (phase1OriginByProduct.get(nego.sellerId)!.get(nego.productName) ?? 0) + nego.requestedQty
+      );
     }
     const suppliesAfterPhase1: ProductSupply[] = supplies.map((s) => {
       const used = phase1OriginByProduct.get(s.sellerId)?.get(s.productName) ?? 0;
@@ -496,20 +539,60 @@ export async function POST(req: Request) {
       hubSurplus[hubId][s.productName] = s.available;
     }
 
+    // ── FIX: Also create a Phase 2 surplus shipment to District Hub
+    // when upazilla has surplus after fulfilling its own demand.
+    // The engine's Phase 2 excludes the seller's own upazilla (by design),
+    // so we need to manually create a surplus-to-district shipment here.
+    const phase2SurplusShipments: ShipmentPlan[] = [];
+    for (const s of suppliesAfterPhase1) {
+      if (s.available <= 0) continue;
+      const hubId = (s as any).hubDistrictResellerId;
+      if (!hubId) continue;
+      
+      // Find district coords
+      const dCoords = getDistrictCoords(s.district);
+      const sCoords = { lat: s.lat ?? 23.46, lng: s.lng ?? 91.18 };
+      const distKm = haversineKm(
+        sCoords.lat, sCoords.lng,
+        dCoords?.lat ?? 23.46, dCoords?.lng ?? 91.18
+      );
+
+      phase2SurplusShipments.push({
+        phase: 2,
+        fromType: "district_hub" as const,
+        fromId: (s as any).ownUpazillaResellerId ?? s.sellerId,
+        fromName: s.upazilla + " Hub",
+        toType: "district_hub" as const,
+        toId: hubId,
+        toName: s.district + " District Hub",
+        distanceKm: distKm || 2.0,
+        overallAcoScore: 4.0,
+        totalQuantity: s.available,
+        lineItems: [{
+          productName: s.productName,
+          productCode: s.productCode,
+          sellerProductId: s.sellerProductId,
+          allocatedQty: s.available,
+          acoScore: 4.0,
+          distanceKm: distKm || 2.0,
+          demandAtTime: s.available,
+          pheromoneScore: 1.0,
+          allocationReason: "intra_district_aco" as const,
+        }],
+      });
+    }
+
     // Compute intra-district fills for Phase 3 residual:
-    // for each (district, product) the total filled by
-    // Phase 1+2.
+    // for each (district, product) the total filled by Phase 1+2.
     const intraDistrictFills: Record<string, Record<string, number>> = {};
-    for (const ship of [...phase1.shipments, ...phase2.shipments]) {
+    for (const ship of [...phase1Shipments, ...phase2.shipments, ...phase2SurplusShipments]) {
       for (const li of ship.lineItems) {
-        // For phase 1 the destination is the upazilla; we
-        // map to district by looking up the dest.
         let district: string | undefined;
         if (ship.phase === 1) {
           const d = supplies.find((x) => x.sellerId === ship.fromId);
           district = d?.district;
         } else {
-          district = ship.fromName; // phase 2: hub = district name
+          district = ship.fromName;
         }
         if (!district) continue;
         if (!intraDistrictFills[district]) intraDistrictFills[district] = {};
@@ -682,16 +765,19 @@ export async function POST(req: Request) {
               productName: n.productName,
               requestedQty: n.requestedQty,
               systemPrice: n.systemPrice,
-              sellerAskPrice: n.systemPrice / 0.9, // Estimate original price
+              sellerAskPrice: n.systemPrice / 0.9,
               offeredPrice: n.systemPrice,
-              status: "pending",
-              expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000), // 6 hours
+              status: "accepted", // Auto-accept for demo
+              expiresAt: new Date(Date.now() + 6 * 60 * 60 * 1000),
             })),
           });
         }
 
+        // ALL shipments: Phase 1 (from negotiations) + Phase 2 (engine) + Phase 2 surplus + Phase 3
         const allShipments = [
+          ...phase1Shipments,
           ...phase2.shipments,
+          ...phase2SurplusShipments,
           ...phase3.shipments,
         ];
         for (const ship of allShipments) {
@@ -734,10 +820,34 @@ export async function POST(req: Request) {
           });
         }
 
-        // 5c2. Active DB Mutations for Phase 2 Shipments
+        // 5c2. Active DB Mutations: Deduct seller stock & fulfill demands
+        // Phase 1 + Phase 2 all deduct from seller and fulfill upazilla demand.
         const deductSeller = new Map<string, number>();
         const fulfillUpazilla = new Map<string, Map<string, number>>();
 
+        // Phase 1 shipments: seller → upazilla
+        for (const ship of phase1Shipments) {
+          for (const li of ship.lineItems) {
+            if (li.sellerProductId) {
+              deductSeller.set(
+                li.sellerProductId,
+                (deductSeller.get(li.sellerProductId) ?? 0) + li.allocatedQty
+              );
+            }
+            if (!fulfillUpazilla.has(ship.toId)) {
+              fulfillUpazilla.set(ship.toId, new Map());
+            }
+            fulfillUpazilla
+              .get(ship.toId)!
+              .set(
+                li.productName,
+                (fulfillUpazilla.get(ship.toId)!.get(li.productName) ?? 0) +
+                  li.allocatedQty
+              );
+          }
+        }
+
+        // Phase 2 engine shipments
         for (const ship of phase2.shipments) {
           for (const li of ship.lineItems) {
             if (li.sellerProductId) {
@@ -823,27 +933,26 @@ export async function POST(req: Request) {
         }
 
         // 5d. Update the global job with final summaries
+        const phase1TotalQty = phase1Shipments.reduce((s, x) => s + x.totalQuantity, 0);
+        const phase2TotalQty = phase2.shipments.reduce((s, x) => s + x.totalQuantity, 0)
+          + phase2SurplusShipments.reduce((s, x) => s + x.totalQuantity, 0);
         await tx.aCOGlobalJob.update({
           where: { id: globalJob.id },
           data: {
             totalSupply: totalSupply as any,
             totalDemand: totalDemand as any,
             phase1Summary: {
-              shipments: phase1.shipments.length,
-              totalQuantity: phase1.shipments.reduce(
-                (s, x) => s + x.totalQuantity,
-                0
-              ),
+              shipments: phase1Shipments.length,
+              totalQuantity: phase1TotalQty,
               products: Object.keys(phase1.summary),
+              negotiations: (phase1.negotiations ?? []).length,
               unallocated: phase1.unallocated,
             } as any,
             phase2Summary: {
-              shipments: phase2.shipments.length,
-              totalQuantity: phase2.shipments.reduce(
-                (s, x) => s + x.totalQuantity,
-                0
-              ),
+              shipments: phase2.shipments.length + phase2SurplusShipments.length,
+              totalQuantity: phase2TotalQty,
               products: Object.keys(phase2.summary),
+              surplus: phase2SurplusShipments.reduce((s, x) => s + x.totalQuantity, 0),
               unallocated: phase2.unallocated,
             } as any,
             phase3Summary: {
@@ -934,18 +1043,23 @@ export async function POST(req: Request) {
       globalJobId: globalJob.id,
       summary: {
         phase1: {
-          filled: phase1.shipments.reduce(
+          filled: phase1Shipments.reduce(
             (s, x) => s + x.totalQuantity,
             0
           ),
-          shipments: phase1.shipments.length,
+          shipments: phase1Shipments.length,
+          negotiations: (phase1.negotiations ?? []).length,
         },
         phase2: {
           filled: phase2.shipments.reduce(
             (s, x) => s + x.totalQuantity,
             0
+          ) + phase2SurplusShipments.reduce(
+            (s, x) => s + x.totalQuantity,
+            0
           ),
-          shipments: phase2.shipments.length,
+          shipments: phase2.shipments.length + phase2SurplusShipments.length,
+          surplus: phase2SurplusShipments.reduce((s, x) => s + x.totalQuantity, 0),
         },
         phase3: {
           proposed: phase3.shipments.reduce(
