@@ -396,6 +396,91 @@ async function main() {
   console.log("   ✅ 6 buyer behaviour events seeded");
 
   // ────────────────────────────────────────────────────────────────────────
+  // 13. DEMO DASHBOARD DATA (B2C Orders and Stock Orders)
+  // ────────────────────────────────────────────────────────────────────────
+  console.log("\n1️⃣3️⃣  Seeding Demo Orders for Seller Dashboard...");
+
+  // B2C Orders
+  await prisma.order.create({
+    data: {
+      buyerId,
+      sellerId,
+      status: "delivered",
+      totalAmount: 6400, // 2x Rice
+      deliveryAddress: "বুড়িচং বাজার রোড, কুমিল্লা",
+      city: "Comilla",
+      upazilla: "Burichang",
+      district: "Comilla",
+      buyerNote: "Please deliver before evening.",
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+      items: {
+        create: [
+          { sellerProductId: riceProduct.id, quantity: 2, priceAtPurchase: 3200 }
+        ]
+      }
+    }
+  });
+
+  await prisma.order.create({
+    data: {
+      buyerId,
+      sellerId,
+      status: "delivered",
+      totalAmount: 2800, // 1x Keyboard
+      deliveryAddress: "বুড়িচং বাজার রোড, কুমিল্লা",
+      city: "Comilla",
+      upazilla: "Burichang",
+      district: "Comilla",
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      items: {
+        create: [
+          { sellerProductId: keyboardProduct.id, quantity: 1, priceAtPurchase: 2800 }
+        ]
+      }
+    }
+  });
+
+  await prisma.order.create({
+    data: {
+      buyerId,
+      sellerId,
+      status: "pending",
+      totalAmount: 3200, // 1x Rice
+      deliveryAddress: "বুড়িচং বাজার রোড, কুমিল্লা",
+      city: "Comilla",
+      upazilla: "Burichang",
+      district: "Comilla",
+      buyerNote: "Call me before delivery.",
+      createdAt: new Date(), // Now
+      items: {
+        create: [
+          { sellerProductId: riceProduct.id, quantity: 1, priceAtPurchase: 3200 }
+        ]
+      }
+    }
+  });
+
+  // Stock Orders
+  await prisma.stockOrderNegotiation.create({
+    data: {
+      upazillaResellerId: upazillaId,
+      sellerId,
+      sellerProductId: riceProduct.id,
+      productCode: riceProduct.productCode,
+      productName: riceProduct.customName,
+      requestedQuantity: 100,
+      originalPrice: 3200,
+      negotiatedPrice: 3100,
+      finalPrice: 3100,
+      status: "completed",
+      sellerNote: "Discount applied for bulk order.",
+      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
+    }
+  });
+
+  console.log("   ✅ 3 B2C Orders and 1 Stock Order seeded");
+
+  // ────────────────────────────────────────────────────────────────────────
   // DONE
   // ────────────────────────────────────────────────────────────────────────
   console.log("\n" + "=".repeat(60));
