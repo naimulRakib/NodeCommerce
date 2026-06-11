@@ -1,10 +1,11 @@
 import Redis from 'ioredis';
+import { REDIS_URL, IS_PRODUCTION } from '@/lib/env';
 
 const globalForRedis = global as unknown as { redis: Redis };
 
 export const redis =
   globalForRedis.redis ||
-  new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  new Redis(REDIS_URL, {
     maxRetriesPerRequest: null,
     retryStrategy: () => null // Prevent crashing during Next.js builds if Redis is offline
   });
@@ -15,4 +16,4 @@ redis.on('error', (err: any) => {
   }
 });
 
-if (process.env.NODE_ENV !== 'production') globalForRedis.redis = redis;
+if (!IS_PRODUCTION) globalForRedis.redis = redis;

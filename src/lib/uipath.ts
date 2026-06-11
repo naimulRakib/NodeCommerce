@@ -1,5 +1,5 @@
 import { ACOShipment, ACOShipmentItem } from "@/generated/prisma";
-import { env } from "@/lib/env";
+import { UIPATH_WEBHOOK_URL, UIPATH_API_KEY } from "@/lib/env";
 
 export interface UiPathTriggerPayload {
   ShipmentId: string;
@@ -37,18 +37,17 @@ export interface UiPathTriggerPayload {
  * Trigger the external UiPath Agent via Webhook.
  */
 export async function triggerUiPathAgent(payload: UiPathTriggerPayload) {
-  const webhookUrl = process.env.UIPATH_WEBHOOK_URL;
-  if (!webhookUrl) {
+  if (!UIPATH_WEBHOOK_URL) {
     console.warn("[UiPath] UIPATH_WEBHOOK_URL not set. Skipping UiPath trigger.");
     return false;
   }
 
   try {
-    const res = await fetch(webhookUrl, {
+    const res = await fetch(UIPATH_WEBHOOK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.UIPATH_API_KEY || ""}`,
+        "Authorization": `Bearer ${UIPATH_API_KEY}`,
       },
       body: JSON.stringify(payload),
     });

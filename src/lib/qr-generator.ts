@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto';
+import { QR_SECRET } from '@/lib/env';
 
 export function generateOrderQR(params: {
   orderNumber: string;
@@ -9,9 +10,7 @@ export function generateOrderQR(params: {
   const timestamp = Date.now().toString();
   const data = `${orderNumber}_${buyerId}_${resellerId}_${timestamp}`;
   
-  const secret = process.env.QR_SECRET || 'fallback-secret-for-development-do-not-use-in-prod';
-  
-  const signature = createHmac('sha256', secret)
+  const signature = createHmac('sha256', QR_SECRET)
     .update(data)
     .digest('hex')
     .slice(0, 8)
@@ -43,9 +42,7 @@ export function verifyOrderQR(qrString: string): {
     const orderNumber = parts.join('_');
 
     const data = `${orderNumber}_${buyerId}_${resellerId}_${timestamp}`;
-    const secret = process.env.QR_SECRET || 'fallback-secret-for-development-do-not-use-in-prod';
-    
-    const expectedSignature = createHmac('sha256', secret)
+    const expectedSignature = createHmac('sha256', QR_SECRET)
       .update(data)
       .digest('hex')
       .slice(0, 8)
