@@ -495,7 +495,24 @@ async function main() {
     }
   });
 
-  console.log("   ✅ 3 B2C Orders, 1 Stock Order, and 2 Upazilla Stock items seeded");
+  // District Hub Stock
+  await prisma.districtStockItem.create({
+    data: {
+      districtResellerId: districtId,
+      productName: riceProduct.customName,
+      quantity: 1200, // They have 1200 units of rice from various upazillas
+    }
+  });
+
+  await prisma.districtStockItem.create({
+    data: {
+      districtResellerId: districtId,
+      productName: keyboardProduct.customName,
+      quantity: 0, // Out of stock at the district level
+    }
+  });
+
+  console.log("   ✅ 3 B2C Orders, 1 Stock Order, 2 Upazilla Stock, and 2 District Stock items seeded");
 
   // ────────────────────────────────────────────────────────────────────────
   // DONE

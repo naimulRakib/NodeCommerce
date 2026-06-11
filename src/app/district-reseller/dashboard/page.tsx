@@ -11,6 +11,8 @@ import DemandPanel from "@/components/district-reseller/DemandPanel";
 import DistrictStockOverview from "@/components/district-reseller/DistrictStockOverview";
 import NationalSurplusView from "@/components/district-reseller/NationalSurplusView";
 import ACOPanel from "@/components/district-reseller/ACOPanel";
+import DistrictUiPathPanel from "@/components/district-reseller/DistrictUiPathPanel";
+import DistrictGrokPanel from "@/components/district-reseller/DistrictGrokPanel";
 import { BarChart2, Package, Globe } from "lucide-react";
 
 function DashboardContent() {
@@ -343,7 +345,15 @@ function DashboardContent() {
         )}
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8 w-full overflow-x-hidden">
-          {activeTab === "inventory" && <InventorySection />}
+          {activeTab === "inventory" && (
+            <div className="space-y-6">
+              <InventorySection />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DistrictUiPathPanel />
+                <DistrictGrokPanel />
+              </div>
+            </div>
+          )}
           {activeTab === "upazilla" && <UpazillaMonitor />}
           {activeTab === "transfers" && <TransferHistoryTable />}
           {activeTab === "demand" && userId && <DemandPanel districtResellerId={userId} />}
