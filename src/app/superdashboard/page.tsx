@@ -21,6 +21,7 @@ import ShipmentPipelinePanel from "@/components/superdashboard/ShipmentPipelineP
 import MultiProductPheromoneLayer from "@/components/superdashboard/MultiProductPheromoneLayer";
 import RunIntelligenceControl from "@/components/superdashboard/RunIntelligenceControl";
 import AgentStatusPanel from "@/components/superdashboard/AgentStatusPanel";
+import GrokThinkingTerminal from "@/components/superdashboard/GrokThinkingTerminal";
 
 interface NodeItem {
   id: string;
@@ -88,6 +89,9 @@ export default function SuperDashboardPage() {
   
   // Mobile UI States
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
+
+  // Grok AI Terminal
+  const [showGrokTerminal, setShowGrokTerminal] = useState<boolean>(false);
 
   // ----------------------------------------------------
   // DATA FETCHING, JITTER, & SYNC
@@ -539,6 +543,7 @@ export default function SuperDashboardPage() {
             <ACOTriggerControl
               onJobComplete={(job) => {
                 setAcoJobs(prev => [job, ...prev]);
+                setShowGrokTerminal(true);
                 fetchNodes();
               }}
             />
@@ -549,6 +554,7 @@ export default function SuperDashboardPage() {
             <GlobalACOControl
               onJobComplete={(job) => {
                 setAcoJobs(prev => [job, ...prev]);
+                setShowGrokTerminal(true);
                 fetchNodes();
               }}
             />
@@ -604,6 +610,15 @@ export default function SuperDashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Grok AI Thinking Terminal — floats bottom-right */}
+      <GrokThinkingTerminal
+        active={showGrokTerminal}
+        onComplete={() => {
+          // Terminal stays visible after completion so viewer can read it
+        }}
+        onClose={() => setShowGrokTerminal(false)}
+      />
 
       {/* 3. MOBILE FLOATING ACTION & BOTTOM DRAWER */}
       {/* Floating filters button on mobile (Fixed bottom-left, purple bg, opens bottom sheet) */}
