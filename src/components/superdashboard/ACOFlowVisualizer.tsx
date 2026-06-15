@@ -246,7 +246,7 @@ export default function ACOFlowVisualizer({ result, isRunning, onReset }: Props)
   const totalSupply = Object.values(result?.totalSupply ?? {}).reduce((a, b) => a + b, 0);
   const conserved = result?.conservationCheck?.balanced ?? false;
 
-  // Run animation sequence when result arrives or isRunning starts
+  // Show real state based on the result
   useEffect(() => {
     if (!isRunning && !result) {
       setActivePhase(0);
@@ -255,41 +255,25 @@ export default function ACOFlowVisualizer({ result, isRunning, onReset }: Props)
     }
 
     if (isRunning) {
-      // Start phase 1 immediately
-      setActivePhase(1);
+      // Show that the backend pipeline is working
+      setActivePhase(1); // or we could cycle it to show progress, but since it's an API call, we just show active
       setDonePhases(new Set());
       return;
     }
 
     if (result) {
-      // Sequence through phases
-      setDonePhases(new Set());
-      const phaseOrder = [1, 2, 3, 4];
-      let idx = 0;
-
-      const runNext = () => {
-        if (idx < phaseOrder.length) {
-          setActivePhase(phaseOrder[idx]);
-          idx++;
-          timerRef.current = setTimeout(() => {
-            setDonePhases((prev) => {
-              const next = new Set(prev);
-              next.add(phaseOrder[idx - 1]);
-              return next;
-            });
-            runNext();
-          }, 1400);
-        } else {
-          setActivePhase(0);
-        }
-      };
-      runNext();
+      // The API call completed synchronously, so all executed phases are done.
+      // We check if quantities are > 0 to see if a phase actually did anything.
+      const phases = new Set<number>();
+      if (p1qty > 0 || (result?.phase1 as any)?.shipments > 0) phases.add(1);
+      if (p2qty > 0 || (result?.phase2 as any)?.shipments > 0) phases.add(2);
+      if (p3qty > 0 || (result?.phase3 as any)?.shipments > 0) phases.add(3);
+      if (p4qty > 0 || (result?.phase4 as any)?.shipments > 0) phases.add(4);
+      
+      setDonePhases(phases);
+      setActivePhase(0); // done animating
     }
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [isRunning, result]);
+  }, [isRunning, result, p1qty, p2qty, p3qty, p4qty]);
 
   const nodeStates = [
     // Seller node

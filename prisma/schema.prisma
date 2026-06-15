@@ -379,6 +379,7 @@ model UpazillaDemand {
   // updating replaces old demand
 
   @@unique([upazillaResellerId, productName])
+  @@index([status])
 }
 
 model DistrictDemand {
@@ -396,6 +397,7 @@ model DistrictDemand {
   updatedAt          DateTime         @updatedAt
 
   @@unique([districtResellerId, productName])
+  @@index([status])
 }
 
 model StockOrderNegotiation {
@@ -463,6 +465,7 @@ model LocalDemand {
   // "no duplicate demand" rule at the DB level so a triple-click cannot
   // create three rows.
   @@unique([localResellerId, productCode])
+  @@index([status])
   @@map("local_demands")
 }
 
@@ -670,6 +673,9 @@ model ShipmentPlan {
   notes           String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+  
+  // UiPath Integration
+  manifestJobId   String?
   jobId           String?
   job             ACORoutingJob?     @relation(fields: [jobId], references: [id])
 
@@ -739,6 +745,7 @@ model ACOGlobalJob {
   // { [shipmentId]: summary } inter-district shipment plans
   phase4Summary       Json      @default("{}")
   // { [shipmentId]: { [upazillaResellerId]: { productName: qty } } }
+  phase5Summary       Json      @default("{}")
   conservationCheck   Json?
   // { balanced: bool, perProduct: { productName: { expected, actual } } }
   startedAt           DateTime  @default(now())

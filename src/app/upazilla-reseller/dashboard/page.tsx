@@ -13,7 +13,6 @@ import { SellersPanel } from "@/components/upazilla-reseller/SellersPanel";
 import { NegotiationPanel } from "@/components/upazilla-reseller/NegotiationPanel";
 import { AvailableStockPanel } from "@/components/upazilla-reseller/AvailableStockPanel";
 import { AcoShipmentsPanel } from "@/components/upazilla-reseller/AcoShipmentsPanel";
-import UpazillaUiPathPanel from "@/components/upazilla-reseller/UpazillaUiPathPanel";
 import UpazillaGrokPanel from "@/components/upazilla-reseller/UpazillaGrokPanel";
 import { BarChart2, Store, MessageSquare, PackageSearch } from "lucide-react";
 
@@ -285,8 +284,7 @@ function DashboardContent() {
           {activeTab === "inventory" && (
             <div className="space-y-6">
               <InventorySection />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <UpazillaUiPathPanel />
+              <div className="grid grid-cols-1 gap-6">
                 <UpazillaGrokPanel />
               </div>
             </div>

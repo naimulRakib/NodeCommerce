@@ -28,21 +28,24 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GROK_API_KEY;
     if (!apiKey) {
-      // Fallback demo response if no key
-      return NextResponse.json({
-        analysis: "ডিস্ট্রিক্ট হাব বিশ্লেষণ:\n\n১. **Premium Miniket Rice:** আপনার হাবে বর্তমান স্টক (৫০০ ইউনিট) যথেষ্ট স্থিতিশীল। ন্যাশনাল লেভেলে অন্যান্য ডিস্ট্রিক্ট (যেমন: ঢাকা) থেকে চাহিদা আসতে পারে, তাই স্টক ধরে রাখুন অথবা ACO এর মাধ্যমে ডিসপ্যাচ করুন।\n\n২. **Mechanical Gaming Keyboard:** স্টক একেবারেই নেই। উপজেলা হাবগুলোতে লোকাল ডিমান্ড থাকায় এখানে উদ্বৃত্ত (surplus) আসার সম্ভাবনা কম।",
-        metrics: [
-          { label: "ন্যাশনাল ডিমান্ড গ্রোথ", value: "+৪০%", trend: "up" },
-          { label: "আউটগোয়িং ডিসপ্যাচ রেট", value: "দ্রুত", trend: "up" },
-        ],
-      });
+      return NextResponse.json({ error: "GROK_API_KEY is not configured on the server." }, { status: 500 });
     }
 
     const prompt = `
 You are an expert AI hub manager for a District Reseller in Bangladesh.
 Analyze these current District Hub stocks and provide a short, professional stock management suggestion in Bengali.
-Tell them which products are ready for National dispatch and the overall demand trend. Keep it under 150 words.
-Use markdown formatting for readability.
+Tell them which products are ready for National dispatch and the overall demand trend. Keep the analysis under 150 words.
+
+You MUST respond ONLY with a valid JSON object in the following format:
+{
+  "analysis": "Your detailed market analysis in Bengali here...",
+  "metrics": [
+    { "label": "Metric Name (e.g., National Demand Growth)", "value": "+40%", "trend": "up" },
+    { "label": "Another Metric", "value": "Fast", "trend": "up" }
+  ]
+}
+
+Ensure "trend" is either "up" or "down".
 
 District Hub Stocks:
 ${JSON.stringify(stockData, null, 2)}
@@ -58,6 +61,7 @@ ${JSON.stringify(stockData, null, 2)}
         model: "grok-beta",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -66,14 +70,20 @@ ${JSON.stringify(stockData, null, 2)}
     }
 
     const json = await res.json();
-    const analysis = json.choices[0].message.content;
+    const content = json.choices[0].message.content;
 
-    const metrics = [
-      { label: "ন্যাশনাল ডিমান্ড গ্রোথ", value: "+৪০%", trend: "up" },
-      { label: "আউটগোয়িং ডিসপ্যাচ রেট", value: "দ্রুত", trend: "up" },
-    ];
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (e) {
+      console.error("Failed to parse Grok JSON:", content);
+      return NextResponse.json({ error: "Invalid AI response format" }, { status: 500 });
+    }
 
-    return NextResponse.json({ analysis, metrics });
+    return NextResponse.json({ 
+      analysis: parsed.analysis || "বিশ্লেষণ তৈরি করা সম্ভব হয়নি।", 
+      metrics: parsed.metrics || [] 
+    });
 
   } catch (error: any) {
     console.error("District AI Predict Error:", error);

@@ -11,7 +11,6 @@ import DemandPanel from "@/components/district-reseller/DemandPanel";
 import DistrictStockOverview from "@/components/district-reseller/DistrictStockOverview";
 import NationalSurplusView from "@/components/district-reseller/NationalSurplusView";
 import ACOPanel from "@/components/district-reseller/ACOPanel";
-import DistrictUiPathPanel from "@/components/district-reseller/DistrictUiPathPanel";
 import DistrictGrokPanel from "@/components/district-reseller/DistrictGrokPanel";
 import { BarChart2, Package, Globe } from "lucide-react";
 
@@ -348,8 +347,7 @@ function DashboardContent() {
           {activeTab === "inventory" && (
             <div className="space-y-6">
               <InventorySection />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DistrictUiPathPanel />
+              <div className="grid grid-cols-1 gap-6">
                 <DistrictGrokPanel />
               </div>
             </div>

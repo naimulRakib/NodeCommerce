@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
 // @ts-ignore
 import UPAZILLA_CENTROIDS_RAW from "@/data/upazilla-centroids.js";
 // @ts-ignore
@@ -19,8 +20,13 @@ Object.entries(DISTRICT_CENTROIDS).forEach(([key, val]) => {
   normalizedDistrictCentroids[key.toLowerCase().trim()] = val;
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { user, error } = await requireAuth();
+    if (error || !user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     // 1. Fetch Sellers (Profile where type = "seller")
     const rawSellers = await prisma.profile.findMany({
       where: {

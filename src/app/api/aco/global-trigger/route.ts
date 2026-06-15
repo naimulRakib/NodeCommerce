@@ -304,7 +304,7 @@ export async function POST(req: Request) {
       const hubD = districtIdByName.get(sp.seller.city.toLowerCase());
       const sellerCoords = getUpazillaCoords(sp.seller.upazilla);
       return {
-        productName: sp.globalProduct?.name ?? sp.customName ?? "",
+        productName: sp.customName || sp.globalProduct?.name || "",
         productCode: sp.productCode,
         sellerProductId: sp.id,
         sellerId: sp.sellerId,
@@ -1035,6 +1035,44 @@ export async function POST(req: Request) {
       }
     } catch (err) {
       console.error("UiPath Trigger Error:", err);
+    }
+
+    // [NEW] AUTO-APPROVE PHASE 3 & RUN PHASE 4 FOR DEMO
+    try {
+      const phase3Shipments = await prisma.aCOShipment.findMany({
+        where: { jobId: globalJob.id, phase: 3 },
+      });
+      if (phase3Shipments.length > 0) {
+        await prisma.aCOShipment.updateMany({
+          where: { jobId: globalJob.id, phase: 3 },
+          data: { 
+            status: "dispatched", 
+            sourceApproved: true, 
+            sourceApprovedAt: new Date(), 
+            targetApproved: true, 
+            targetApprovedAt: new Date() 
+          }
+        });
+        
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        for (const ship of phase3Shipments) {
+          await fetch(`${baseUrl}/api/aco/phase4-trigger`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Cookie": req.headers.get("cookie") || "" },
+            body: JSON.stringify({ shipmentId: ship.id })
+          }).catch(console.error);
+        }
+      }
+      
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      // Also trigger Phase 5 automatically to push stock to Local Resellers
+      await fetch(`${baseUrl}/api/aco/phase5-trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Cookie": req.headers.get("cookie") || "" },
+        body: JSON.stringify({ jobId: globalJob.id })
+      }).catch(console.error);
+    } catch (err) {
+      console.error("Auto Phase 4 Trigger Error:", err);
     }
 
     return NextResponse.json({

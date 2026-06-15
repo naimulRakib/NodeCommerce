@@ -28,21 +28,24 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GROK_API_KEY;
     if (!apiKey) {
-      // Fallback demo response if no key
-      return NextResponse.json({
-        analysis: "হাব বিশ্লেষণ:\n\n১. **Premium Miniket Rice:** আপনার হাবে বর্তমান স্টক ভালো। লোকাল রিসেলারদের মধ্যে চাহিদা দ্রুত বাড়ছে। আপনি কুমিল্লা সদরে উদ্বৃত্ত (surplus) স্টক পাঠাতে পারেন।\n\n২. **Mechanical Gaming Keyboard:** লোকাল রিসেলারদের চাহিদা অনুযায়ী স্টক অপর্যাপ্ত। ডিস্ট্রিক্ট হাব থেকে আরও স্টক রিকোয়েস্ট করা উচিত।",
-        metrics: [
-          { label: "লোকাল ডিমান্ড গ্রোথ", value: "+২৫%", trend: "up" },
-          { label: "উদ্বৃত্ত স্টক (Surplus)", value: "উচ্চ", trend: "up" },
-        ],
-      });
+      return NextResponse.json({ error: "GROK_API_KEY is not configured on the server." }, { status: 500 });
     }
 
     const prompt = `
 You are an expert AI hub manager for an Upazilla Reseller in Bangladesh.
 Analyze these current hub stocks and provide a short, professional stock management suggestion in Bengali.
-Tell them which products have high demand and if they should dispatch surplus to the District hub. Keep it under 150 words.
-Use markdown formatting for readability.
+Tell them which products have high demand and if they should dispatch surplus to the District hub. Keep the analysis under 150 words.
+
+You MUST respond ONLY with a valid JSON object in the following format:
+{
+  "analysis": "Your detailed market analysis in Bengali here...",
+  "metrics": [
+    { "label": "Metric Name (e.g., Local Demand Growth)", "value": "+25%", "trend": "up" },
+    { "label": "Another Metric", "value": "High", "trend": "up" }
+  ]
+}
+
+Ensure "trend" is either "up" or "down".
 
 Upazilla Hub Stocks:
 ${JSON.stringify(stockData, null, 2)}
@@ -58,6 +61,7 @@ ${JSON.stringify(stockData, null, 2)}
         model: "grok-beta",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -66,14 +70,20 @@ ${JSON.stringify(stockData, null, 2)}
     }
 
     const json = await res.json();
-    const analysis = json.choices[0].message.content;
+    const content = json.choices[0].message.content;
 
-    const metrics = [
-      { label: "লোকাল ডিমান্ড গ্রোথ", value: "+২৫%", trend: "up" },
-      { label: "উদ্বৃত্ত স্টক (Surplus)", value: "উচ্চ", trend: "up" },
-    ];
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (e) {
+      console.error("Failed to parse Grok JSON:", content);
+      return NextResponse.json({ error: "Invalid AI response format" }, { status: 500 });
+    }
 
-    return NextResponse.json({ analysis, metrics });
+    return NextResponse.json({ 
+      analysis: parsed.analysis || "বিশ্লেষণ তৈরি করা সম্ভব হয়নি।", 
+      metrics: parsed.metrics || [] 
+    });
 
   } catch (error: any) {
     console.error("Upazilla AI Predict Error:", error);
