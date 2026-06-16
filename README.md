@@ -85,50 +85,14 @@ NodeCommerce was designed specifically to attack **all six of these** at the arc
 
 NodeCommerce replaces "one warehouse, one courier, react to every order" with **"many small nodes, AI-forecasted, ACO-routed, locally trusted."**
 
-|
- Centralized Model 
-|
- NodeCommerce Model 
-|
-|
----
-|
----
-|
-|
- One central warehouse 
-|
- Thousands of local reseller nodes 
-|
-|
- React to orders after they happen 
-|
- Pre-position stock based on forecasted demand 
-|
-|
- Courier handles all last-mile 
-|
- Local reseller 
-*
-is
-*
- the last mile — they're your neighbor 
-|
-|
- Returns flow back to central hub 
-|
- Surplus flows sideways/locally via ACO, rarely needs reversal 
-|
-|
- Stock sync via manual dashboards 
-|
- Atomic, transactional, product-code-based stock tracking 
-|
-|
- "Seller" = anonymous online identity 
-|
- "Local Reseller" = a real shop you can walk to 
-|
+| Centralized Model | NodeCommerce Model |
+| --- | --- |
+| One central warehouse | Thousands of local reseller nodes |
+| React to orders after they happen | Pre-position stock based on forecasted demand |
+| Courier handles all last-mile | Local reseller *is* the last mile — they're your neighbor |
+| Returns flow back to central hub | Surplus flows sideways/locally via ACO, rarely needs reversal |
+| Stock sync via manual dashboards | Atomic, transactional, product-code-based stock tracking |
+| "Seller" = anonymous online identity | "Local Reseller" = a real shop you can walk to |
 
 Three engines power this:
 
@@ -212,90 +176,15 @@ graph TD
     SD -.-> DR2
 ```
 
-|
- Role 
-|
- Real-world equivalent 
-|
- Core responsibility 
-|
-|
----
-|
----
-|
----
-|
-|
-**
-Seller
-**
-|
- Manufacturer / wholesaler / large producer 
-|
- Lists products (AI-moderated via Ollama), holds bulk stock 
-|
-|
-**
-Local Reseller
-**
-|
- Neighborhood shop / kirana store 
-|
- Holds local stock, is the actual point of sale and delivery for buyers — 
-**
-the trust layer
-**
-|
-|
-**
-Upazilla Reseller
-**
-|
- Sub-district distribution hub 
-|
- Aggregates local demand, receives Phase 1 stock, distributes to local resellers 
-|
-|
-**
-District Reseller
-**
-|
- District-level depot 
-|
- Manages surplus, participates in Phase 2/3/4 ACO 
-|
-|
-**
-City Reseller
-**
-|
- Metro distribution node 
-|
- Handles high-density urban routing for major cities 
-|
-|
-**
-Buyer
-**
-|
- End consumer 
-|
- Searches by GPS + product code, orders from the 
-*
-nearest
-*
- stocked reseller 
-|
-|
-**
-SuperDashboard
-**
-|
- Operations control room 
-|
- Live Leaflet map of every node, pheromone trails, ACO trigger, conservation reports 
-|
+| Role | Real-world equivalent | Core responsibility |
+| --- | --- | --- |
+| **Seller** | Manufacturer / wholesaler / large producer | Lists products (AI-moderated via Ollama), holds bulk stock |
+| **Local Reseller** | Neighborhood shop / kirana store | Holds local stock, is the actual point of sale and delivery for buyers — **the trust layer** |
+| **Upazilla Reseller** | Sub-district distribution hub | Aggregates local demand, receives Phase 1 stock, distributes to local resellers |
+| **District Reseller** | District-level depot | Manages surplus, participates in Phase 2/3/4 ACO |
+| **City Reseller** | Metro distribution node | Handles high-density urban routing for major cities |
+| **Buyer** | End consumer | Searches by GPS + product code, orders from the *nearest* stocked reseller |
+| **SuperDashboard** | Operations control room | Live Leaflet map of every node, pheromone trails, ACO trigger, conservation reports |
 
 ---
 
@@ -503,70 +392,18 @@ If any invariant fails, the responsible `$transaction` rolls back entirely — a
 
 ## 🛠️ Tech Stack
 
-|
- Layer 
-|
- Technology 
-|
-|
----
-|
----
-|
-|
- Frontend 
-|
- Next.js 14 (App Router), TypeScript, Tailwind CSS 
-|
-|
- Maps & Visualization 
-|
- Leaflet.js, React Flow (SuperDashboard "God View") 
-|
-|
- Database 
-|
- PostgreSQL via Supabase, Prisma ORM (20+ models) 
-|
-|
- Auth 
-|
- Supabase Auth (email/password, role-based) 
-|
-|
- AI — Product Moderation 
-|
- Ollama (
-`qwen2.5-coder:7b`
-), local "ISPAT" gatekeeper 
-|
-|
- AI — Demand Forecasting 
-|
- XGBoost (Python/FastAPI), LangChain + Claude Sonnet 
-|
-|
- Routing Engine 
-|
- Custom TypeScript ACO engine (
-`/lib/aco-multi-engine.ts`
-) 
-|
-|
- Orchestration 
-|
- UiPath Maestro (BPMN), UiPath Orchestrator, Action Center 
-|
-|
- Security 
-|
- HMAC-SHA256 signed QR codes, OAuth2 client credentials (UiPath) 
-|
-|
- Deployment 
-|
- Vercel (frontend), Supabase (backend), FastAPI microservice 
-|
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS |
+| Maps & Visualization | Leaflet.js, React Flow (SuperDashboard "God View") |
+| Database | PostgreSQL via Supabase, Prisma ORM (20+ models) |
+| Auth | Supabase Auth (email/password, role-based) |
+| AI — Product Moderation | Ollama (`qwen2.5-coder:7b`), local "ISPAT" gatekeeper |
+| AI — Demand Forecasting | XGBoost (Python/FastAPI), LangChain + Claude Sonnet |
+| Routing Engine | Custom TypeScript ACO engine (`/lib/aco-multi-engine.ts`) |
+| Orchestration | UiPath Maestro (BPMN), UiPath Orchestrator, Action Center |
+| Security | HMAC-SHA256 signed QR codes, OAuth2 client credentials (UiPath) |
+| Deployment | Vercel (frontend), Supabase (backend), FastAPI microservice |
 
 ---
 
@@ -657,86 +494,20 @@ This runs a 53-test suite across system health, demo data, ACO pipeline, UiPath 
 
 ## 🔌 API Reference Overview
 
-|
- Endpoint 
-|
- Purpose 
-|
-|
----
-|
----
-|
-|
-`POST /api/aco/global-trigger`
-|
- Run the full multi-product 4-phase ACO cycle 
-|
-|
-`GET /api/aco/jobs`
- / 
-`/api/aco/global-jobs/[id]`
-|
- Inspect ACO job history and shipments 
-|
-|
-`PATCH /api/aco/shipments/[id]/approve`
-|
- Approve/reject a Phase 3 inter-district shipment 
-|
-|
-`GET /api/aco/pheromones`
-|
- Pheromone heatmap data for the SuperDashboard 
-|
-|
-`POST /api/aco/negotiate`
- / 
-`PATCH /api/aco/negotiate/[id]`
-|
- Seller price negotiation for ACO stock 
-|
-|
-`GET /api/demand/upazilla`
- / 
-`GET /api/demand/district`
-|
- Demand entry and rollup 
-|
-|
-`POST /api/agent/demand-pulse`
- / 
-`POST /api/agent/demand-apply`
-|
- Autonomous demand agent collection & write-back 
-|
-|
-`GET /api/delivery/search`
-|
- Location + product-code based reseller search 
-|
-|
-`POST /api/delivery/orders`
- / 
-`.../qr-confirm`
-|
- Place and confirm last-mile delivery orders 
-|
-|
-`POST /api/uipath/shipment-action`
-|
- UiPath Action Center callback for Phase 3 
-|
-|
-`GET /api/aco/verify-conservation`
-|
- Run the 5-invariant conservation check 
-|
-|
-`GET /api/superdashboard/nodes`
-|
- All node positions/stock for the live map 
-|
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/aco/global-trigger` | Run the full multi-product 4-phase ACO cycle |
+| `GET /api/aco/jobs` / `/api/aco/global-jobs/[id]` | Inspect ACO job history and shipments |
+| `PATCH /api/aco/shipments/[id]/approve` | Approve/reject a Phase 3 inter-district shipment |
+| `GET /api/aco/pheromones` | Pheromone heatmap data for the SuperDashboard |
+| `POST /api/aco/negotiate` / `PATCH /api/aco/negotiate/[id]` | Seller price negotiation for ACO stock |
+| `GET /api/demand/upazilla` / `GET /api/demand/district` | Demand entry and rollup |
+| `POST /api/agent/demand-pulse` / `POST /api/agent/demand-apply` | Autonomous demand agent collection & write-back |
+| `GET /api/delivery/search` | Location + product-code based reseller search |
+| `POST /api/delivery/orders` / `.../qr-confirm` | Place and confirm last-mile delivery orders |
+| `POST /api/uipath/shipment-action` | UiPath Action Center callback for Phase 3 |
+| `GET /api/aco/verify-conservation` | Run the 5-invariant conservation check |
+| `GET /api/superdashboard/nodes` | All node positions/stock for the live map |
 
 ---
 
@@ -744,64 +515,14 @@ This runs a 53-test suite across system health, demo data, ACO pipeline, UiPath 
 
 NodeCommerce was built for **UiPath AgentHack**, **Track 2 (Maestro / BPMN)**, under the **Demand Forecasting AI** challenge — *"An AI-powered system that predicts product demand for SMEs and online businesses."*
 
-|
- Judging Criteria 
-|
- Where NodeCommerce delivers 
-|
-|
----
-|
----
-|
-|
-**
-Innovation (20%)
-**
-|
- Pre-emptive (not reactive) routing; Ant Colony Optimization applied to real-world multi-tier logistics; multi-product truck bundling 
-|
-|
-**
-Technical Execution (20%)
-**
-|
- 20+ Prisma models, 48+ API routes, custom ACO math engine, mathematically-verified conservation, XGBoost + LangChain hybrid forecasting 
-|
-|
-**
-Business Model (20%)
-**
-|
- Three revenue streams (platform SaaS, transaction commission, demand-intelligence API), modular district-by-district rollout, South Asia expansion path 
-|
-|
-**
-Real-World Impact (20%)
-**
-|
- Addresses a structurally lossy market (see 
-[
-The Problem
-](
-#-the-problem
-)
-); Bangla-first UX; human-in-the-loop AI by design 
-|
-|
-**
-Scalability + NRB (10%)
-**
-|
- Configuration-driven district expansion (no code changes); cloud-native (Vercel + Supabase); NRB diaspora investment pathway 
-|
-|
-**
-Presentation (10%)
-**
-|
- Live SuperDashboard map demo, real-time truck animation, end-to-end buyer-to-delivery walkthrough 
-|
+| Judging Criteria | Where NodeCommerce delivers |
+| --- | --- |
+| **Innovation (20%)** | Pre-emptive (not reactive) routing; Ant Colony Optimization applied to real-world multi-tier logistics; multi-product truck bundling |
+| **Technical Execution (20%)** | 20+ Prisma models, 48+ API routes, custom ACO math engine, mathematically-verified conservation, XGBoost + LangChain hybrid forecasting |
+| **Business Model (20%)** | Three revenue streams (platform SaaS, transaction commission, demand-intelligence API), modular district-by-district rollout, South Asia expansion path |
+| **Real-World Impact (20%)** | Addresses a structurally lossy market (see [The Problem](#-the-problem)); Bangla-first UX; human-in-the-loop AI by design |
+| **Scalability + NRB (10%)** | Configuration-driven district expansion (no code changes); cloud-native (Vercel + Supabase); NRB diaspora investment pathway |
+| **Presentation (10%)** | Live SuperDashboard map demo, real-time truck animation, end-to-end buyer-to-delivery walkthrough |
 
 ---
 
