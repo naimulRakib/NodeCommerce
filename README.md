@@ -166,7 +166,7 @@ graph TD
     LR -->|"sells to"| Buyer
     Seller -->|"Phase 2: surplus"| DR1
     UR -->|"Phase 2: surplus"| DR1
-    DR1 |"Phase 3: Inter-District ACO(UiPath dual approval)"| DR2
+    DR1 -->|"Phase 3: Inter-District ACO(UiPath dual approval)"| DR2
     DR2 -->|"Phase 4: distribute"| UR
     DR1 --> CR
 
@@ -241,7 +241,7 @@ flowchart LR
     end
 
     subgraph P3["🟣 Phase 3: Inter-District ACO"]
-        D1 |"pending_approvaldual sign-off via UiPath"| D2["Chittagong District Hub"]
+        D1 -->|"pending_approvaldual sign-off via UiPath"| D2["Chittagong District Hub"]
     end
 
     subgraph P4["🟠 Phase 4: Downward Distribution"]
